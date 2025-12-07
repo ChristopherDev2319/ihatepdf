@@ -1,0 +1,424 @@
+/* ==========================================================================
+   IHATEPDF - Estilos Responsivos
+   ========================================================================== */
+
+/* Tablets (768px y menores)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  /* Variables ajustadas para tablets */
+  :root {
+    --spacing-xl: 2rem;
+    --spacing-xxl: 3rem;
+    --font-size-title: 1.75rem;
+    --container-padding: var(--spacing-sm);
+  }
+
+  /* Header */
+  .header {
+    padding: var(--spacing-lg) var(--container-padding);
+  }
+
+  .header__title {
+    font-size: var(--font-size-title);
+  }
+
+  /* Main */
+  .main {
+    padding: var(--spacing-md) var(--container-padding);
+  }
+
+  /* Operation Selector */
+  .operation-selector__buttons {
+    gap: var(--spacing-xs);
+  }
+
+  .operation-btn {
+    min-width: 100px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-small);
+  }
+
+  /* File Upload */
+  .file-upload__dropzone {
+    padding: var(--spacing-lg) var(--spacing-md);
+    min-height: 180px;
+  }
+
+  .file-upload__icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .file-upload__text {
+    font-size: var(--font-size-small);
+  }
+
+  /* File Preview */
+  .file-preview__item {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .file-preview__icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .file-preview__name {
+    font-size: var(--font-size-small);
+  }
+
+  .file-preview__meta {
+    font-size: 0.75rem;
+  }
+
+  /* Buttons */
+  .btn--large {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-base);
+  }
+
+  /* Notification */
+  .notification {
+    min-width: 280px;
+    max-width: calc(100vw - var(--spacing-lg) * 2);
+    top: var(--spacing-sm);
+  }
+
+  /* Progress Indicator */
+  .progress-indicator {
+    min-width: 220px;
+    max-width: calc(100vw - var(--spacing-lg) * 2);
+    padding: var(--spacing-md);
+  }
+
+  .progress-indicator__spinner {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Footer */
+  .footer {
+    padding: var(--spacing-md) var(--container-padding);
+  }
+}
+
+/* Móviles (480px y menores)
+   ========================================================================== */
+
+@media (max-width: 480px) {
+  /* Variables ajustadas para móviles */
+  :root {
+    --spacing-lg: 1.25rem;
+    --spacing-xl: 1.5rem;
+    --spacing-xxl: 2rem;
+    --font-size-title: 1.5rem;
+    --font-size-large: 1.125rem;
+    --container-padding: 0.75rem;
+  }
+
+  /* Header */
+  .header {
+    padding: var(--spacing-md) var(--container-padding);
+  }
+
+  .header__title {
+    font-size: var(--font-size-title);
+  }
+
+  .header__subtitle {
+    font-size: var(--font-size-small);
+  }
+
+  /* Main */
+  .main {
+    padding: var(--spacing-sm) var(--container-padding);
+  }
+
+  /* Operation Selector */
+  .operation-selector {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .operation-selector__buttons {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .operation-btn {
+    width: 100%;
+    min-width: auto;
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-base);
+  }
+
+  /* File Upload */
+  .file-upload__dropzone {
+    padding: var(--spacing-md);
+    min-height: 160px;
+  }
+
+  .file-upload__icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .file-upload__text {
+    font-size: var(--font-size-small);
+  }
+
+  .file-upload__text br {
+    display: none;
+  }
+
+  .file-upload__text--secondary {
+    display: block;
+    margin-top: var(--spacing-xs);
+  }
+
+  /* Operation Controls */
+  .control-group {
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .control-group__label {
+    font-size: var(--font-size-small);
+  }
+
+  .control-group__input,
+  .control-group__select {
+    font-size: var(--font-size-small);
+    padding: var(--spacing-xs);
+  }
+
+  .control-group__help {
+    font-size: 0.75rem;
+  }
+
+  /* File Preview */
+  .file-preview {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .file-preview__title {
+    font-size: var(--font-size-base);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .file-preview__item {
+    padding: var(--spacing-xs);
+    flex-wrap: wrap;
+  }
+
+  .file-preview__drag-handle {
+    margin-right: var(--spacing-xs);
+    padding: 4px;
+  }
+
+  .file-preview__icon {
+    width: 32px;
+    height: 32px;
+    margin-right: var(--spacing-xs);
+  }
+
+  .file-preview__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .file-preview__name {
+    font-size: var(--font-size-small);
+  }
+
+  .file-preview__meta {
+    font-size: 0.7rem;
+  }
+
+  .file-preview__remove {
+    padding: 4px;
+    margin-left: var(--spacing-xs);
+  }
+
+  /* Action Section */
+  .action-section {
+    margin-top: var(--spacing-lg);
+  }
+
+  /* Buttons */
+  .btn--large {
+    width: 100%;
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-base);
+  }
+
+  /* Notification */
+  .notification {
+    min-width: auto;
+    width: calc(100vw - var(--spacing-md) * 2);
+    max-width: none;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    top: var(--spacing-xs);
+    font-size: var(--font-size-small);
+  }
+
+  .notification__message {
+    font-size: var(--font-size-small);
+  }
+
+  .notification__close {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+  }
+
+  /* Progress Indicator */
+  .progress-indicator {
+    min-width: auto;
+    width: calc(100vw - var(--spacing-lg) * 2);
+    max-width: none;
+    padding: var(--spacing-sm);
+  }
+
+  .progress-indicator__spinner {
+    width: 36px;
+    height: 36px;
+  }
+
+  .progress-indicator__message {
+    font-size: var(--font-size-small);
+  }
+
+  /* Footer */
+  .footer {
+    padding: var(--spacing-sm) var(--container-padding);
+    margin-top: var(--spacing-lg);
+  }
+
+  .footer__text {
+    font-size: 0.75rem;
+  }
+
+  /* Secciones */
+  section {
+    margin-bottom: var(--spacing-md);
+  }
+}
+
+/* Móviles pequeños (360px y menores)
+   ========================================================================== */
+
+@media (max-width: 360px) {
+  :root {
+    --font-size-title: 1.375rem;
+    --container-padding: 0.5rem;
+  }
+
+  .header__title {
+    font-size: var(--font-size-title);
+  }
+
+  .file-upload__dropzone {
+    padding: var(--spacing-sm);
+    min-height: 140px;
+  }
+
+  .file-preview__item {
+    font-size: var(--font-size-small);
+  }
+
+  .operation-btn {
+    padding: 0.625rem var(--spacing-sm);
+  }
+}
+
+/* Mejoras de accesibilidad para dispositivos táctiles
+   ========================================================================== */
+
+@media (hover: none) and (pointer: coarse) {
+  /* Aumentar áreas táctiles */
+  .operation-btn {
+    min-height: 44px;
+  }
+
+  .file-preview__remove {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .notification__close {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Eliminar efectos hover en dispositivos táctiles */
+  .operation-btn:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .file-upload__dropzone:hover {
+    transform: none;
+  }
+
+  .btn--primary:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* Modo de alto contraste
+   ========================================================================== */
+
+@media (prefers-contrast: high) {
+  :root {
+    --color-border: #95A5A6;
+    --color-border-dark: #7F8C8D;
+  }
+
+  .operation-btn {
+    border-width: 2px;
+  }
+
+  .file-upload__dropzone {
+    border-width: 3px;
+  }
+}
+
+/* Preferencia de movimiento reducido
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .progress-indicator__spinner {
+    animation: none;
+    border-top-color: var(--color-border);
+  }
+}
+
+/* Orientación horizontal en móviles
+   ========================================================================== */
+
+@media (max-width: 768px) and (orientation: landscape) {
+  .header {
+    padding: var(--spacing-sm) var(--container-padding);
+  }
+
+  .file-upload__dropzone {
+    min-height: 120px;
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .main {
+    padding: var(--spacing-sm) var(--container-padding);
+  }
+
+  section {
+    margin-bottom: var(--spacing-sm);
+  }
+}
