@@ -18,6 +18,10 @@ import { PDFSplitController } from './controllers/PDFSplitController.js';
 import { PDFCompressController } from './controllers/PDFCompressController.js';
 import { PDFRotateController } from './controllers/PDFRotateController.js';
 import { JPGToPDFController } from './controllers/JPGToPDFController.js';
+import { PNGToPDFController } from './controllers/PNGToPDFController.js';
+import { ImagesToPDFController } from './controllers/ImagesToPDFController.js';
+import { PageNumbersController } from './controllers/PageNumbersController.js';
+import { WatermarkController } from './controllers/WatermarkController.js';
 
 /**
  * Clase principal de la aplicación
@@ -35,7 +39,11 @@ class App {
       split: new PDFSplitController(this.pdfOperations, this.fileManager, this.uiManager),
       compress: new PDFCompressController(this.pdfOperations, this.fileManager, this.uiManager),
       rotate: new PDFRotateController(this.pdfOperations, this.fileManager, this.uiManager),
-      'jpg-to-pdf': new JPGToPDFController(this.pdfOperations, this.fileManager, this.uiManager)
+      'jpg-to-pdf': new JPGToPDFController(this.pdfOperations, this.fileManager, this.uiManager),
+      'png-to-pdf': new PNGToPDFController(this.pdfOperations, this.fileManager, this.uiManager),
+      'images-to-pdf': new ImagesToPDFController(this.pdfOperations, this.fileManager, this.uiManager),
+      'add-page-numbers': new PageNumbersController(this.pdfOperations, this.fileManager, this.uiManager),
+      'add-watermark': new WatermarkController(this.pdfOperations, this.fileManager, this.uiManager)
     };
     
     // Estado de la aplicación
@@ -54,6 +62,8 @@ class App {
     // Controles específicos de operaciones
     this.splitControls = document.getElementById('splitControls');
     this.rotateControls = document.getElementById('rotateControls');
+    this.pageNumbersControls = document.getElementById('pageNumbersControls');
+    this.watermarkControls = document.getElementById('watermarkControls');
     this.pageRanges = document.getElementById('pageRanges');
     this.pageSelection = document.getElementById('pageSelection');
     this.rotationAngle = document.getElementById('rotationAngle');
@@ -145,6 +155,8 @@ class App {
     // Ocultar todos los controles específicos
     if (this.splitControls) this.splitControls.hidden = true;
     if (this.rotateControls) this.rotateControls.hidden = true;
+    if (this.pageNumbersControls) this.pageNumbersControls.hidden = true;
+    if (this.watermarkControls) this.watermarkControls.hidden = true;
     
     // Mostrar controles específicos según la operación
     switch (operation) {
@@ -153,6 +165,20 @@ class App {
         break;
       case 'rotate':
         if (this.rotateControls) this.rotateControls.hidden = false;
+        break;
+      case 'add-page-numbers':
+        if (this.pageNumbersControls) this.pageNumbersControls.hidden = false;
+        // Inicializar controles de números de página
+        if (this.controllers['add-page-numbers']) {
+          this.controllers['add-page-numbers'].initializeControls();
+        }
+        break;
+      case 'add-watermark':
+        if (this.watermarkControls) this.watermarkControls.hidden = false;
+        // Inicializar controles de marca de agua
+        if (this.controllers['add-watermark']) {
+          this.controllers['add-watermark'].initializeControls();
+        }
         break;
     }
   }
@@ -165,16 +191,33 @@ class App {
     if (!this.fileInput) return;
     
     // Configurar accept según la operación
-    if (operation === 'jpg-to-pdf') {
-      this.fileInput.setAttribute('accept', '.jpg,.jpeg,image/jpeg');
-      this.fileInput.setAttribute('multiple', '');
-    } else if (operation === 'combine') {
-      this.fileInput.setAttribute('accept', '.pdf,application/pdf');
-      this.fileInput.setAttribute('multiple', '');
-    } else {
-      // Para split, compress, rotate: un solo PDF
-      this.fileInput.setAttribute('accept', '.pdf,application/pdf');
-      this.fileInput.removeAttribute('multiple');
+    switch (operation) {
+      case 'jpg-to-pdf':
+        this.fileInput.setAttribute('accept', '.jpg,.jpeg,image/jpeg');
+        this.fileInput.setAttribute('multiple', '');
+        break;
+      case 'png-to-pdf':
+        this.fileInput.setAttribute('accept', '.png,image/png');
+        this.fileInput.setAttribute('multiple', '');
+        break;
+      case 'images-to-pdf':
+        this.fileInput.setAttribute('accept', '.jpg,.jpeg,.png,image/jpeg,image/png');
+        this.fileInput.setAttribute('multiple', '');
+        break;
+      case 'combine':
+        this.fileInput.setAttribute('accept', '.pdf,application/pdf');
+        this.fileInput.setAttribute('multiple', '');
+        break;
+      case 'add-page-numbers':
+      case 'add-watermark':
+        this.fileInput.setAttribute('accept', '.pdf,application/pdf');
+        this.fileInput.setAttribute('multiple', '');
+        break;
+      default:
+        // Para split, compress, rotate: un solo PDF
+        this.fileInput.setAttribute('accept', '.pdf,application/pdf');
+        this.fileInput.removeAttribute('multiple');
+        break;
     }
   }
   
@@ -276,6 +319,18 @@ class App {
       case 'jpg-to-pdf':
         await this.currentController.handleConvert();
         break;
+      case 'png-to-pdf':
+        await this.currentController.handleConvert();
+        break;
+      case 'images-to-pdf':
+        await this.currentController.handleConvert();
+        break;
+      case 'add-page-numbers':
+        await this.handlePageNumbersProcess();
+        break;
+      case 'add-watermark':
+        await this.handleWatermarkProcess();
+        break;
       default:
         this.uiManager.showError('Operación no implementada');
     }
@@ -334,6 +389,35 @@ class App {
     });
   }
   
+  /**
+   * Maneja el procesamiento de números de página
+   */
+  async handlePageNumbersProcess() {
+    if (this.currentController.selectedFiles.length === 0) {
+      this.uiManager.showError('Debes seleccionar al menos 1 archivo PDF');
+      return;
+    }
+    
+    const options = this.currentController.getOptionsFromUI();
+    await this.currentController.process(this.currentController.selectedFiles, options);
+  }
+  
+  /**
+   * Maneja el procesamiento de marca de agua
+   */
+  async handleWatermarkProcess() {
+    if (this.currentController.selectedFiles.length === 0) {
+      this.uiManager.showError('Debes seleccionar al menos 1 archivo PDF');
+      return;
+    }
+    
+    const watermarkText = this.currentController.getWatermarkTextFromUI();
+    if (!this.currentController.validateWatermarkText(watermarkText)) return;
+    
+    const options = this.currentController.getOptionsFromUI();
+    await this.currentController.process(this.currentController.selectedFiles, watermarkText, options);
+  }
+
   /**
    * Maneja la eliminación de un archivo
    * @param {number} index - Índice del archivo a eliminar

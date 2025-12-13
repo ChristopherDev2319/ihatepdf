@@ -82,6 +82,35 @@ export class FileManager {
   }
 
   /**
+   * Valida si un archivo es un PNG válido
+   * @param {File} file - Archivo a validar
+   * @returns {boolean} - true si es un PNG válido
+   */
+  validatePNGFile(file) {
+    if (!file) {
+      return false;
+    }
+
+    // Verificar extensión
+    const fileName = file.name.toLowerCase();
+    const hasValidExtension = fileName.endsWith('.png');
+    
+    // Verificar tipo MIME
+    const hasValidMimeType = file.type === 'image/png';
+    
+    return hasValidExtension && hasValidMimeType;
+  }
+
+  /**
+   * Valida si un archivo es una imagen válida (JPG o PNG)
+   * @param {File} file - Archivo a validar
+   * @returns {boolean} - true si es una imagen válida
+   */
+  validateImageFile(file) {
+    return this.validateJPGFile(file) || this.validatePNGFile(file);
+  }
+
+  /**
    * Descarga un archivo al sistema del usuario
    * @param {Blob} blob - Blob del archivo a descargar
    * @param {string} filename - Nombre del archivo
