@@ -156,15 +156,19 @@ export class PDFRotateController {
         this.rotationAngle
       );
       
-      // Crear blob y descargar
+      // Crear blob para descarga
       const blob = new Blob([rotatedPDF], { type: 'application/pdf' });
-      const filename = this._generateRotatedFilename();
-      this.fileManager.downloadFile(blob, filename);
+      
+      // Generar nombre por defecto basado en la operación
+      const defaultFilename = this.fileManager.generateDefaultFilename('rotate', this.selectedFile.name);
+      
+      // Mostrar opciones de descarga
+      this.uiManager.hideProgress();
+      this.uiManager.showDownloadOptions(blob, defaultFilename);
       
       // Mostrar éxito
       const successMessage = this._formatSuccessMessage();
-      this.uiManager.hideProgress();
-      this.uiManager.showSuccess(successMessage);
+      this.uiManager.showSuccess(successMessage + ' Personaliza las opciones de descarga si lo deseas.');
       
       // Limpiar selección
       this.selectedFile = null;
@@ -284,15 +288,7 @@ export class PDFRotateController {
     }
   }
 
-  /**
-   * Genera un nombre de archivo para el PDF rotado
-   * @private
-   * @returns {string} Nombre del archivo
-   */
-  _generateRotatedFilename() {
-    const originalName = this.selectedFile.name.replace('.pdf', '');
-    return `${originalName}_rotated.pdf`;
-  }
+
 
   /**
    * Formatea el mensaje de éxito

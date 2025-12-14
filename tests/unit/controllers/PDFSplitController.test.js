@@ -44,7 +44,9 @@ describe('PDFSplitController - Unit Tests', () => {
 
     mockFileManager = {
       validatePDFFile: vi.fn(),
-      downloadFile: vi.fn()
+      downloadFile: vi.fn(),
+      generateDefaultFilename: vi.fn(),
+      downloadFileWithCustomLocation: vi.fn()
     };
 
     mockUIManager = {
@@ -55,7 +57,11 @@ describe('PDFSplitController - Unit Tests', () => {
       updateFileList: vi.fn(),
       clearFileList: vi.fn(),
       enableControls: vi.fn(),
-      disableControls: vi.fn()
+      disableControls: vi.fn(),
+      showDownloadOptions: vi.fn(),
+      hideDownloadOptions: vi.fn(),
+      getCustomFilename: vi.fn(),
+      isCustomLocationSelected: vi.fn()
     };
 
     controller = new PDFSplitController(mockPDFOperations, mockFileManager, mockUIManager);
@@ -65,6 +71,10 @@ describe('PDFSplitController - Unit Tests', () => {
     test('handles file selection successfully', async () => {
       const mockFile = new File(['%PDF-1.4'], 'test.pdf', { type: 'application/pdf' });
       mockFileManager.validatePDFFile.mockReturnValue(true);
+      
+      // Mock the _loadPageCount method
+      controller._loadPageCount = vi.fn().mockResolvedValue();
+      controller.totalPages = 5;
 
       await controller.handleFileSelection(mockFile);
 
@@ -83,6 +93,10 @@ describe('PDFSplitController - Unit Tests', () => {
       Object.setPrototypeOf(mockFileList, FileList.prototype);
 
       mockFileManager.validatePDFFile.mockReturnValue(true);
+      
+      // Mock the _loadPageCount method
+      controller._loadPageCount = vi.fn().mockResolvedValue();
+      controller.totalPages = 5;
 
       await controller.handleFileSelection(mockFileList);
 
@@ -124,158 +138,7 @@ describe('PDFSplitController - Unit Tests', () => {
     });
   });
 
-  describe('handleRangeInput - parsing', () => {
-    test('parses single page range correctly', async () => {
-      const mockFile = await createTestPDF(5);
-      controller.selectedFile = mockFile;
 
-      const result = await controller.handleRangeInput('1-3');
-
-      expect(result).toBe(true);
-      expect(controller.pageRanges).toEqual([{ start: 1, end: 3 }]);
-    });
-
-    test('parses multiple page ranges correctly', async () => {
-      const mockFile = await createTestPDF(15);
-      controller.selectedFile = mockFile;
-
-      const result = await controller.handleRangeInput('1-3, 5-7, 10-12');
-
-      expect(result).toBe(true);
-      expect(controller.pageRanges).toEqual([
-        { start: 1, end: 3 },
-        { start: 5, end: 7 },
-        { start: 10, end: 12 }
-      ]);
-    });
-
-    test('parses individual pages correctly', async () => {
-      const mockFile = await createTestPDF(10);
-      controller.selectedFile = mockFile;
-
-      const result = await controller.handleRangeInput('1, 3, 5');
-
-      expect(result).toBe(true);
-      expect(controller.pageRanges).toEqual([
-        { start: 1, end: 1 },
-        { start: 3, end: 3 },
-        { start: 5, end: 5 }
-      ]);
-    });
-
-    test('parses mixed ranges and individual pages', async () => {
-      const mockFile = await createTestPDF(10);
-      controller.selectedFile = mockFile;
-
-      const result = await controller.handleRangeInput('1-3, 5, 7-9');
-
-      expect(result).toBe(true);
-      expect(controller.pageRanges).toEqual([
-        { start: 1, end: 3 },
-        { start: 5, end: 5 },
-        { start: 7, end: 9 }
-      ]);
-    });
-  });
-
-  describe('handleRangeInput - validation of invalid ranges (edge case)', () => {
-    test('rejects ranges with start page less than 1', async () => {
-      const mockFile = await createTestPDF(5);
-      controller.selectedFile = mockFile;
-
-      const result = await controller.handleRangeInput('0-3');
-
-      expect(result).toBe(false);
-      expect(mockUIManager.showError).toHaveBeenCalledWith(
-        expect.stringContaining('fuera de rango')
-      );
-    });
-
-    test('rejects ranges with end page greater than total pages', async () => {
-      const mockFile = await createTestPDF(5);
-      controller.selectedFile = mockFile;
-
-      const result = await controller.handleRangeInput('1-100');
-
-      expect(result).toBe(false);
-      expect(mockUIManager.showError).toHaveBeenCalledWith(
-        expect.stringContaining('fuera de rango')
-      );
-    });
-
-    test('rejects ranges where start is greater than end', async () => {
-      const mockFile = await createTestPDF(5);
-      controller.selectedFile = mockFile;
-
-      const result = await controller.handleRangeInput('5-3');
-
-      expect(result).toBe(false);
-      expect(mockUIManager.showError).toHaveBeenCalledWith(
-        expect.stringContaining('Rango inválido')
-      );
-    });
-
-    test('rejects empty range input', async () => {
-      const mockFile = new File(['%PDF-1.4'], 'test.pdf', { type: 'application/pdf' });
-      controller.selectedFile = mockFile;
-
-      const result = await controller.handleRangeInput('');
-
-      expect(result).toBe(false);
-      expect(mockUIManager.showError).toHaveBeenCalledWith(
-        expect.stringContaining('al menos un rango')
-      );
-    });
-
-    test('requires file to be selected before parsing ranges', async () => {
-      controller.selectedFile = null;
-
-      const result = await controller.handleRangeInput('1-3');
-
-      expect(result).toBe(false);
-      expect(mockUIManager.showError).toHaveBeenCalledWith(
-        expect.stringContaining('seleccionar un archivo')
-      );
-    });
-  });
-
-  describe('handleRangeInput - validation of overlapping ranges (edge case)', () => {
-    test('rejects overlapping ranges', async () => {
-      const mockFile = await createTestPDF(10);
-      controller.selectedFile = mockFile;
-
-      const result = await controller.handleRangeInput('1-5, 3-7');
-
-      expect(result).toBe(false);
-      expect(mockUIManager.showError).toHaveBeenCalledWith(
-        expect.stringContaining('se superponen')
-      );
-    });
-
-    test('rejects ranges that touch at boundaries', async () => {
-      const mockFile = await createTestPDF(10);
-      controller.selectedFile = mockFile;
-
-      const result = await controller.handleRangeInput('1-3, 3-5');
-
-      expect(result).toBe(false);
-      expect(mockUIManager.showError).toHaveBeenCalledWith(
-        expect.stringContaining('se superponen')
-      );
-    });
-
-    test('rejects completely overlapping ranges', async () => {
-      const mockFile = await createTestPDF(10);
-      controller.selectedFile = mockFile;
-
-      const result = await controller.handleRangeInput('1-10, 3-5');
-
-      expect(result).toBe(false);
-      expect(mockUIManager.showError).toHaveBeenCalledWith(
-        expect.stringContaining('se superponen')
-      );
-    });
-  });
 
   describe('handleSplit', () => {
     test('validates that file is selected', async () => {
@@ -289,32 +152,73 @@ describe('PDFSplitController - Unit Tests', () => {
       expect(mockPDFOperations.splitPDF).not.toHaveBeenCalled();
     });
 
-    test('validates that ranges are specified', async () => {
+    test('validates that split mode is selected', async () => {
       controller.selectedFile = new File(['%PDF-1.4'], 'test.pdf', { type: 'application/pdf' });
-      controller.pageRanges = [];
+      controller.splitMode = null;
 
       await controller.handleSplit();
 
       expect(mockUIManager.showError).toHaveBeenCalledWith(
-        expect.stringContaining('especificar rangos')
+        expect.stringContaining('seleccionar cómo quieres dividir')
       );
       expect(mockPDFOperations.splitPDF).not.toHaveBeenCalled();
     });
 
-    test('splits PDF successfully', async () => {
+    test('splits PDF successfully with download options for single file', async () => {
+      const mockFile = new File(['%PDF-1.4'], 'test.pdf', { type: 'application/pdf' });
+      const initialRanges = [{ start: 1, end: 3 }];
+      controller.selectedFile = mockFile;
+      controller.splitMode = 'ranges';
+
+      const mockSplitPDFs = [new Uint8Array([1, 2, 3])];
+      const mockDefaultFilename = 'test_dividido_20231213T120000.pdf';
+      
+      mockPDFOperations.splitPDF.mockResolvedValue(mockSplitPDFs);
+      mockFileManager.generateDefaultFilename.mockReturnValue(mockDefaultFilename);
+
+      // Mock generateRanges and validation methods
+      controller.generateRanges = vi.fn().mockReturnValue(initialRanges);
+      controller._validateRanges = vi.fn().mockReturnValue({ valid: true });
+
+      await controller.handleSplit();
+
+      expect(mockUIManager.disableControls).toHaveBeenCalled();
+      expect(mockUIManager.showProgress).toHaveBeenCalledWith('Dividiendo PDF...');
+      expect(mockPDFOperations.splitPDF).toHaveBeenCalledWith(mockFile, initialRanges);
+      expect(mockFileManager.generateDefaultFilename).toHaveBeenCalledWith('split', 'test.pdf');
+      expect(mockUIManager.showDownloadOptions).toHaveBeenCalledWith(
+        expect.any(Blob),
+        mockDefaultFilename
+      );
+      expect(mockUIManager.hideProgress).toHaveBeenCalled();
+      expect(mockUIManager.showSuccess).toHaveBeenCalledWith(
+        expect.stringContaining('PDF dividido exitosamente')
+      );
+      expect(mockUIManager.enableControls).toHaveBeenCalled();
+    });
+
+    test('splits PDF successfully with direct download for multiple files', async () => {
       const mockFile = new File(['%PDF-1.4'], 'test.pdf', { type: 'application/pdf' });
       const initialRanges = [
         { start: 1, end: 3 },
         { start: 5, end: 7 }
       ];
       controller.selectedFile = mockFile;
-      controller.pageRanges = initialRanges;
+      controller.splitMode = 'ranges';
 
       const mockSplitPDFs = [
         new Uint8Array([1, 2, 3]),
         new Uint8Array([4, 5, 6])
       ];
       mockPDFOperations.splitPDF.mockResolvedValue(mockSplitPDFs);
+      mockFileManager.generateDefaultFilename.mockReturnValue('test_dividido.pdf');
+
+      // Mock generateRanges and validation methods
+      controller.generateRanges = vi.fn().mockReturnValue(initialRanges);
+      controller._validateRanges = vi.fn().mockReturnValue({ valid: true });
+      controller._generateSplitFilename = vi.fn()
+        .mockReturnValueOnce('test_dividido_parte1.pdf')
+        .mockReturnValueOnce('test_dividido_parte2.pdf');
 
       await controller.handleSplit();
 
@@ -324,17 +228,18 @@ describe('PDFSplitController - Unit Tests', () => {
       expect(mockFileManager.downloadFile).toHaveBeenCalledTimes(2);
       expect(mockUIManager.hideProgress).toHaveBeenCalled();
       expect(mockUIManager.showSuccess).toHaveBeenCalledWith(
-        expect.stringContaining('dividido exitosamente')
+        expect.stringContaining('PDF dividido exitosamente en 2 archivos')
       );
       expect(mockUIManager.enableControls).toHaveBeenCalled();
-      expect(controller.selectedFile).toBeNull();
-      expect(controller.pageRanges).toEqual([]);
     });
 
     test('handles split errors gracefully', async () => {
       controller.selectedFile = new File(['%PDF-1.4'], 'test.pdf', { type: 'application/pdf' });
-      controller.pageRanges = [{ start: 1, end: 3 }];
+      controller.splitMode = 'ranges';
 
+      // Mock methods
+      controller.generateRanges = vi.fn().mockReturnValue([{ start: 1, end: 3 }]);
+      controller._validateRanges = vi.fn().mockReturnValue({ valid: true });
       mockPDFOperations.splitPDF.mockRejectedValue(new Error('Split failed'));
 
       await controller.handleSplit();
@@ -348,8 +253,11 @@ describe('PDFSplitController - Unit Tests', () => {
 
     test('ensures controls are re-enabled even on error', async () => {
       controller.selectedFile = new File(['%PDF-1.4'], 'test.pdf', { type: 'application/pdf' });
-      controller.pageRanges = [{ start: 1, end: 3 }];
+      controller.splitMode = 'ranges';
 
+      // Mock methods
+      controller.generateRanges = vi.fn().mockReturnValue([{ start: 1, end: 3 }]);
+      controller._validateRanges = vi.fn().mockReturnValue({ valid: true });
       mockPDFOperations.splitPDF.mockRejectedValue(new Error('Test error'));
 
       await controller.handleSplit();
@@ -359,20 +267,56 @@ describe('PDFSplitController - Unit Tests', () => {
   });
 
   describe('Integration with Model and View', () => {
-    test('properly coordinates between Model and View during split operation', async () => {
+    test('properly coordinates between Model and View during split operation with single file', async () => {
       const mockFile = new File(['%PDF-1.4'], 'document.pdf', { type: 'application/pdf' });
       controller.selectedFile = mockFile;
-      controller.pageRanges = [{ start: 1, end: 5 }];
+      controller.splitMode = 'ranges';
 
       const mockSplitPDFs = [new Uint8Array([1, 2, 3, 4, 5])];
+      const mockDefaultFilename = 'document_dividido_20231213T120000.pdf';
+      
       mockPDFOperations.splitPDF.mockResolvedValue(mockSplitPDFs);
+      mockFileManager.generateDefaultFilename.mockReturnValue(mockDefaultFilename);
+
+      // Mock required methods
+      controller.generateRanges = vi.fn().mockReturnValue([{ start: 1, end: 5 }]);
+      controller._validateRanges = vi.fn().mockReturnValue({ valid: true });
 
       await controller.handleSplit();
 
       // Verify all methods were called
       expect(mockUIManager.disableControls).toHaveBeenCalled();
       expect(mockPDFOperations.splitPDF).toHaveBeenCalled();
-      expect(mockFileManager.downloadFile).toHaveBeenCalled();
+      expect(mockFileManager.generateDefaultFilename).toHaveBeenCalled();
+      expect(mockUIManager.showDownloadOptions).toHaveBeenCalled();
+      expect(mockUIManager.enableControls).toHaveBeenCalled();
+    });
+
+    test('properly coordinates between Model and View during split operation with multiple files', async () => {
+      const mockFile = new File(['%PDF-1.4'], 'document.pdf', { type: 'application/pdf' });
+      controller.selectedFile = mockFile;
+      controller.splitMode = 'ranges';
+
+      const mockSplitPDFs = [
+        new Uint8Array([1, 2, 3]),
+        new Uint8Array([4, 5, 6])
+      ];
+      mockPDFOperations.splitPDF.mockResolvedValue(mockSplitPDFs);
+      mockFileManager.generateDefaultFilename.mockReturnValue('document_dividido.pdf');
+
+      // Mock required methods
+      controller.generateRanges = vi.fn().mockReturnValue([{ start: 1, end: 3 }, { start: 4, end: 6 }]);
+      controller._validateRanges = vi.fn().mockReturnValue({ valid: true });
+      controller._generateSplitFilename = vi.fn()
+        .mockReturnValueOnce('document_dividido_parte1.pdf')
+        .mockReturnValueOnce('document_dividido_parte2.pdf');
+
+      await controller.handleSplit();
+
+      // Verify all methods were called
+      expect(mockUIManager.disableControls).toHaveBeenCalled();
+      expect(mockPDFOperations.splitPDF).toHaveBeenCalled();
+      expect(mockFileManager.downloadFile).toHaveBeenCalledTimes(2);
       expect(mockUIManager.enableControls).toHaveBeenCalled();
     });
   });

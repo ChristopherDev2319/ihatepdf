@@ -18,7 +18,9 @@ describe('PDFRotateController - Unit Tests', () => {
 
     mockFileManager = {
       validatePDFFile: vi.fn(),
-      downloadFile: vi.fn()
+      downloadFile: vi.fn(),
+      generateDefaultFilename: vi.fn(),
+      downloadFileWithCustomLocation: vi.fn()
     };
 
     mockUIManager = {
@@ -29,7 +31,11 @@ describe('PDFRotateController - Unit Tests', () => {
       updateFileList: vi.fn(),
       clearFileList: vi.fn(),
       enableControls: vi.fn(),
-      disableControls: vi.fn()
+      disableControls: vi.fn(),
+      showDownloadOptions: vi.fn(),
+      hideDownloadOptions: vi.fn(),
+      getCustomFilename: vi.fn(),
+      isCustomLocationSelected: vi.fn()
     };
 
     controller = new PDFRotateController(mockPDFOperations, mockFileManager, mockUIManager);
@@ -236,21 +242,28 @@ describe('PDFRotateController - Unit Tests', () => {
       expect(mockPDFOperations.rotatePDF).not.toHaveBeenCalled();
     });
 
-    test('rotates PDF successfully', async () => {
+    test('rotates PDF successfully and shows download options', async () => {
       const mockFile = new File(['%PDF-1.4'], 'test.pdf', { type: 'application/pdf' });
       controller.selectedFile = mockFile;
       controller.selectedPages = [1, 3, 5];
       controller.rotationAngle = 90;
 
       const mockRotatedPDF = new Uint8Array([1, 2, 3, 4]);
+      const mockDefaultFilename = 'test_rotado_20231213T120000.pdf';
+      
       mockPDFOperations.rotatePDF.mockResolvedValue(mockRotatedPDF);
+      mockFileManager.generateDefaultFilename.mockReturnValue(mockDefaultFilename);
 
       await controller.handleRotate();
 
       expect(mockUIManager.disableControls).toHaveBeenCalled();
       expect(mockUIManager.showProgress).toHaveBeenCalledWith('Rotando páginas...');
       expect(mockPDFOperations.rotatePDF).toHaveBeenCalledWith(mockFile, [1, 3, 5], 90);
-      expect(mockFileManager.downloadFile).toHaveBeenCalled();
+      expect(mockFileManager.generateDefaultFilename).toHaveBeenCalledWith('rotate', 'test.pdf');
+      expect(mockUIManager.showDownloadOptions).toHaveBeenCalledWith(
+        expect.any(Blob),
+        mockDefaultFilename
+      );
       expect(mockUIManager.hideProgress).toHaveBeenCalled();
       expect(mockUIManager.showSuccess).toHaveBeenCalledWith(
         expect.stringContaining('rotadas')
@@ -271,7 +284,7 @@ describe('PDFRotateController - Unit Tests', () => {
       await controller.handleRotate();
 
       expect(mockUIManager.showSuccess).toHaveBeenCalledWith(
-        '1 página rotada 180° exitosamente'
+        expect.stringContaining('1 página rotada 180° exitosamente')
       );
     });
 
@@ -286,7 +299,7 @@ describe('PDFRotateController - Unit Tests', () => {
       await controller.handleRotate();
 
       expect(mockUIManager.showSuccess).toHaveBeenCalledWith(
-        '3 páginas rotadas 270° exitosamente'
+        expect.stringContaining('3 páginas rotadas 270° exitosamente')
       );
     });
 
@@ -318,18 +331,21 @@ describe('PDFRotateController - Unit Tests', () => {
       expect(mockUIManager.enableControls).toHaveBeenCalled();
     });
 
-    test('generates correct rotated filename', async () => {
+    test('generates correct default filename using FileManager', async () => {
       const mockFile = new File(['%PDF-1.4'], 'document.pdf', { type: 'application/pdf' });
       controller.selectedFile = mockFile;
       controller.selectedPages = [1];
 
+      const mockDefaultFilename = 'document_rotado_20231213T120000.pdf';
       mockPDFOperations.rotatePDF.mockResolvedValue(new Uint8Array([1, 2, 3]));
+      mockFileManager.generateDefaultFilename.mockReturnValue(mockDefaultFilename);
 
       await controller.handleRotate();
 
-      expect(mockFileManager.downloadFile).toHaveBeenCalledWith(
+      expect(mockFileManager.generateDefaultFilename).toHaveBeenCalledWith('rotate', 'document.pdf');
+      expect(mockUIManager.showDownloadOptions).toHaveBeenCalledWith(
         expect.any(Blob),
-        'document_rotated.pdf'
+        mockDefaultFilename
       );
     });
   });
@@ -341,7 +357,9 @@ describe('PDFRotateController - Unit Tests', () => {
       controller.selectedPages = [1, 2, 3];
       controller.rotationAngle = 90;
 
+      const mockDefaultFilename = 'doc_rotado_20231213T120000.pdf';
       mockPDFOperations.rotatePDF.mockResolvedValue(new Uint8Array([5, 6, 7, 8]));
+      mockFileManager.generateDefaultFilename.mockReturnValue(mockDefaultFilename);
 
       await controller.handleRotate();
 
@@ -349,7 +367,8 @@ describe('PDFRotateController - Unit Tests', () => {
       expect(mockUIManager.disableControls).toHaveBeenCalled();
       expect(mockUIManager.showProgress).toHaveBeenCalled();
       expect(mockPDFOperations.rotatePDF).toHaveBeenCalled();
-      expect(mockFileManager.downloadFile).toHaveBeenCalled();
+      expect(mockFileManager.generateDefaultFilename).toHaveBeenCalled();
+      expect(mockUIManager.showDownloadOptions).toHaveBeenCalled();
       expect(mockUIManager.hideProgress).toHaveBeenCalled();
       expect(mockUIManager.showSuccess).toHaveBeenCalled();
       expect(mockUIManager.enableControls).toHaveBeenCalled();
@@ -361,6 +380,7 @@ describe('PDFRotateController - Unit Tests', () => {
       controller.selectedPages = [1];
 
       mockPDFOperations.rotatePDF.mockResolvedValue(new Uint8Array([1, 2, 3]));
+      mockFileManager.generateDefaultFilename.mockReturnValue('test_rotado.pdf');
 
       await controller.handleRotate();
 
@@ -376,6 +396,7 @@ describe('PDFRotateController - Unit Tests', () => {
       controller.rotationAngle = 270;
 
       mockPDFOperations.rotatePDF.mockResolvedValue(new Uint8Array([1, 2, 3]));
+      mockFileManager.generateDefaultFilename.mockReturnValue('test_rotado.pdf');
 
       await controller.handleRotate();
 

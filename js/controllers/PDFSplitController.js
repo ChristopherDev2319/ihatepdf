@@ -341,16 +341,26 @@ export class PDFSplitController {
       // Dividir el PDF usando el modelo
       const splitPDFs = await this.pdfOperations.splitPDF(this.selectedFile, ranges);
       
-      // Descargar cada PDF resultante
-      splitPDFs.forEach((pdfBytes, index) => {
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const filename = this._generateSplitFilename(index);
-        this.fileManager.downloadFile(blob, filename);
-      });
-      
-      // Mostrar éxito
-      this.uiManager.hideProgress();
-      this.uiManager.showSuccess(`PDF dividido exitosamente en ${splitPDFs.length} archivo${splitPDFs.length !== 1 ? 's' : ''}`);
+      // Para múltiples archivos, mostrar opciones de descarga para cada uno
+      if (splitPDFs.length === 1) {
+        // Un solo archivo - mostrar opciones de descarga
+        const blob = new Blob([splitPDFs[0]], { type: 'application/pdf' });
+        const defaultFilename = this.fileManager.generateDefaultFilename('split', this.selectedFile.name);
+        
+        this.uiManager.hideProgress();
+        this.uiManager.showDownloadOptions(blob, defaultFilename);
+        this.uiManager.showSuccess('PDF dividido exitosamente. Personaliza las opciones de descarga si lo deseas.');
+      } else {
+        // Múltiples archivos - descargar directamente con nombres por defecto
+        splitPDFs.forEach((pdfBytes, index) => {
+          const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+          const filename = this._generateSplitFilename(index);
+          this.fileManager.downloadFile(blob, filename);
+        });
+        
+        this.uiManager.hideProgress();
+        this.uiManager.showSuccess(`PDF dividido exitosamente en ${splitPDFs.length} archivos`);
+      }
       
       // Limpiar selección
       this._resetSplitState();
@@ -493,7 +503,8 @@ export class PDFSplitController {
    * @returns {string} Nombre del archivo
    */
   _generateSplitFilename(index) {
-    const originalName = this.selectedFile.name.replace('.pdf', '');
-    return `${originalName}_part${index + 1}.pdf`;
+    const baseName = this.fileManager.generateDefaultFilename('split', this.selectedFile.name);
+    const nameWithoutExt = baseName.replace('.pdf', '');
+    return `${nameWithoutExt}_parte${index + 1}.pdf`;
   }
 }

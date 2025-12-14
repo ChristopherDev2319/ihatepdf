@@ -31,7 +31,7 @@ class App {
     // Inicializar modelos (compartidos entre controladores)
     this.pdfOperations = new PDFOperations();
     this.fileManager = new FileManager();
-    this.uiManager = new UIManager();
+    this.uiManager = new UIManager(this.fileManager);
     
     // Inicializar controladores
     this.controllers = {
@@ -91,8 +91,7 @@ class App {
     // Configurar event listeners para notificaciones
     this.setupNotifications();
     
-    // Configurar event listeners para controles específicos
-    this.setupOperationControls();
+    // Los controles específicos se configuran en updateOperationControls
     
     // Seleccionar operación por defecto (combinar)
     this.selectOperation('combine');

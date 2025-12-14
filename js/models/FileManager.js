@@ -157,4 +157,98 @@ export class FileManager {
     
     return url;
   }
+
+  /**
+   * Genera un nombre de archivo por defecto basado en la operación
+   * @param {string} operation - Tipo de operación (combine, split, compress, rotate, convert)
+   * @param {string} originalFilename - Nombre del archivo original (opcional)
+   * @returns {string} - Nombre de archivo por defecto
+   */
+  generateDefaultFilename(operation, originalFilename = null) {
+    if (!operation) {
+      throw new Error('Se requiere especificar la operación');
+    }
+
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+    let baseName = '';
+
+    if (originalFilename) {
+      // Remover extensión del archivo original
+      baseName = originalFilename.replace(/\.[^/.]+$/, '');
+    } else {
+      baseName = 'documento';
+    }
+
+    switch (operation.toLowerCase()) {
+      case 'combine':
+        return `${baseName}_combinado_${timestamp}.pdf`;
+      case 'split':
+        return `${baseName}_dividido_${timestamp}.pdf`;
+      case 'compress':
+        return `${baseName}_comprimido_${timestamp}.pdf`;
+      case 'rotate':
+        return `${baseName}_rotado_${timestamp}.pdf`;
+      case 'convert':
+        return `${baseName}_convertido_${timestamp}.pdf`;
+      default:
+        return `${baseName}_procesado_${timestamp}.pdf`;
+    }
+  }
+
+  /**
+   * Verifica si el navegador soporta File System Access API
+   * @returns {boolean} - true si soporta la API
+   */
+  supportsFileSystemAccess() {
+    return 'showSaveFilePicker' in window;
+  }
+
+  /**
+   * Descarga un archivo con ubicación personalizada usando File System Access API
+   * @param {Blob} blob - Blob del archivo a descargar
+   * @param {string} filename - Nombre del archivo
+   * @returns {Promise<void>}
+   */
+  async downloadFileWithCustomLocation(blob, filename) {
+    if (!blob || !filename) {
+      throw new Error('Se requieren blob y nombre de archivo');
+    }
+
+    // Verificar soporte de File System Access API
+    if (!this.supportsFileSystemAccess()) {
+      // Fallback a descarga normal
+      this.downloadFile(blob, filename);
+      return;
+    }
+
+    try {
+      // Usar File System Access API para permitir al usuario elegir ubicación
+      const fileHandle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [
+          {
+            description: 'Archivos PDF',
+            accept: {
+              'application/pdf': ['.pdf'],
+            },
+          },
+        ],
+      });
+
+      // Escribir el archivo en la ubicación seleccionada
+      const writable = await fileHandle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+    } catch (error) {
+      // Si el usuario cancela o hay error, usar fallback
+      if (error.name === 'AbortError') {
+        // Usuario canceló, no hacer nada
+        return;
+      }
+      
+      // Para otros errores, usar descarga normal como fallback
+      console.warn('Error con File System Access API, usando descarga normal:', error);
+      this.downloadFile(blob, filename);
+    }
+  }
 }

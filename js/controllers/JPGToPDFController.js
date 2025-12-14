@@ -111,14 +111,17 @@ export class JPGToPDFController {
       // Convertir JPGs a PDF usando el modelo
       const pdfData = await this.pdfOperations.convertJPGToPDF(this.selectedFiles);
       
-      // Crear blob y descargar
+      // Crear blob para descarga
       const blob = new Blob([pdfData], { type: 'application/pdf' });
-      const filename = this._generateConvertedFilename();
-      this.fileManager.downloadFile(blob, filename);
       
-      // Mostrar éxito
+      // Generar nombre por defecto basado en la operación
+      const originalFilename = this.selectedFiles.length > 0 ? this.selectedFiles[0].name : null;
+      const defaultFilename = this.fileManager.generateDefaultFilename('convert', originalFilename);
+      
+      // Mostrar opciones de descarga
       this.uiManager.hideProgress();
-      this.uiManager.showSuccess('JPG convertido a PDF exitosamente');
+      this.uiManager.showDownloadOptions(blob, defaultFilename);
+      this.uiManager.showSuccess('JPG convertido a PDF exitosamente. Personaliza las opciones de descarga si lo deseas.');
       
       // Limpiar selección
       this.selectedFiles = [];
@@ -147,13 +150,5 @@ export class JPGToPDFController {
     this.uiManager.updateFileList(fileInfoList);
   }
 
-  /**
-   * Genera un nombre de archivo para el PDF convertido
-   * @private
-   * @returns {string} Nombre del archivo
-   */
-  _generateConvertedFilename() {
-    const timestamp = new Date().toISOString().slice(0, 10);
-    return `converted_${timestamp}.pdf`;
-  }
+
 }

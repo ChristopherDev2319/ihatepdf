@@ -111,14 +111,17 @@ export class PDFCombineController {
       // Combinar PDFs usando el modelo
       const combinedPDF = await this.pdfOperations.combinePDFs(this.selectedFiles);
       
-      // Crear blob y descargar
+      // Crear blob para descarga
       const blob = new Blob([combinedPDF], { type: 'application/pdf' });
-      const filename = this._generateCombinedFilename();
-      this.fileManager.downloadFile(blob, filename);
       
-      // Mostrar éxito
+      // Generar nombre por defecto basado en la operación
+      const originalFilename = this.selectedFiles.length > 0 ? this.selectedFiles[0].name : null;
+      const defaultFilename = this.fileManager.generateDefaultFilename('combine', originalFilename);
+      
+      // Mostrar opciones de descarga
       this.uiManager.hideProgress();
-      this.uiManager.showSuccess('PDFs combinados exitosamente');
+      this.uiManager.showDownloadOptions(blob, defaultFilename);
+      this.uiManager.showSuccess('PDFs combinados exitosamente. Personaliza las opciones de descarga si lo deseas.');
       
       // Limpiar selección
       this.selectedFiles = [];
@@ -147,13 +150,5 @@ export class PDFCombineController {
     this.uiManager.updateFileList(fileInfoList);
   }
 
-  /**
-   * Genera un nombre de archivo para el PDF combinado
-   * @private
-   * @returns {string} Nombre del archivo
-   */
-  _generateCombinedFilename() {
-    const timestamp = new Date().toISOString().slice(0, 10);
-    return `combined_${timestamp}.pdf`;
-  }
+
 }

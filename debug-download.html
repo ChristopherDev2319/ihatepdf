@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Funcionalidad de Descarga</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>Diagnóstico de Funcionalidad de Descarga</h1>
+    
+    <div class="test-section">
+        <h2>1. Verificar soporte de File System Access API</h2>
+        <button onclick="checkFileSystemAccess()">Verificar Soporte</button>
+        <div id="fsAccessResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Probar descarga normal (fallback)</h2>
+        <button onclick="testNormalDownload()">Probar Descarga Normal</button>
+        <div id="normalDownloadResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Probar descarga con ubicación personalizada</h2>
+        <button onclick="testCustomLocationDownload()" id="customDownloadBtn">Probar Descarga Personalizada</button>
+        <div id="customDownloadResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Información del navegador</h2>
+        <button onclick="showBrowserInfo()">Mostrar Información</button>
+        <div id="browserInfo"></div>
+    </div>
+
+    <script type="module">
+        // Importar FileManager para las pruebas
+        import { FileManager } from './js/models/FileManager.js';
+
+        let fileManager;
+
+        // Inicializar FileManager
+        try {
+            fileManager = new FileManager();
+            console.log('FileManager inicializado correctamente');
+        } catch (error) {
+            console.error('Error al inicializar FileManager:', error);
+        }
+
+        // Función para crear un blob de prueba
+        function createTestBlob() {
+            const content = 'Este es un archivo de prueba para verificar la funcionalidad de descarga.';
+            return new Blob([content], { type: 'text/plain' });
+        }
+
+        // Verificar soporte de File System Access API
+        window.checkFileSystemAccess = function() {
+            const resultDiv = document.getElementById('fsAccessResult');
+            
+            try {
+                const hasSupport = 'showSaveFilePicker' in window;
+                const managerSupport = fileManager ? fileManager.supportsFileSystemAccess() : false;
+                
+                if (hasSupport && managerSupport) {
+                    resultDiv.innerHTML = '<div class="result success">✅ File System Access API está disponible</div>';
+                    document.getElementById('customDownloadBtn').disabled = false;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            ❌ File System Access API no está disponible<br>
+                            - window.showSaveFilePicker: ${hasSupport ? 'Sí' : 'No'}<br>
+                            - FileManager.supportsFileSystemAccess(): ${managerSupport ? 'Sí' : 'No'}
+                        </div>
+                    `;
+                    document.getElementById('customDownloadBtn').disabled = true;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Error al verificar soporte: ${error.message}</div>`;
+            }
+        };
+
+        // Probar descarga normal
+        window.testNormalDownload = function() {
+            const resultDiv = document.getElementById('normalDownloadResult');
+            
+            try {
+                if (!fileManager) {
+                    throw new Error('FileManager no está disponible');
+                }
+
+                const testBlob = createTestBlob();
+                const filename = 'prueba_descarga_normal.txt';
+                
+                fileManager.downloadFile(testBlob, filename);
+                
+                resultDiv.innerHTML = '<div class="result success">✅ Descarga normal iniciada. Verifica tu carpeta de descargas.</div>';
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Error en descarga normal: ${error.message}</div>`;
+            }
+        };
+
+        // Probar descarga con ubicación personalizada
+        window.testCustomLocationDownload = async function() {
+            const resultDiv = document.getElementById('customDownloadResult');
+            
+            try {
+                if (!fileManager) {
+                    throw new Error('FileManager no está disponible');
+                }
+
+                const testBlob = createTestBlob();
+                const filename = 'prueba_descarga_personalizada.txt';
+                
+                resultDiv.innerHTML = '<div class="result info">⏳ Iniciando descarga personalizada... Se abrirá un diálogo para elegir ubicación.</div>';
+                
+                await fileManager.downloadFileWithCustomLocation(testBlob, filename);
+                
+                resultDiv.innerHTML = '<div class="result success">✅ Descarga personalizada completada o cancelada por el usuario.</div>';
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Error en descarga personalizada: ${error.message}</div>`;
+            }
+        };
+
+        // Mostrar información del navegador
+        window.showBrowserInfo = function() {
+            const resultDiv = document.getElementById('browserInfo');
+            
+            const info = {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                cookieEnabled: navigator.cookieEnabled,
+                onLine: navigator.onLine,
+                vendor: navigator.vendor,
+                isSecureContext: window.isSecureContext,
+                location: window.location.href
+            };
+            
+            let infoHtml = '<div class="result info">';
+            for (const [key, value] of Object.entries(info)) {
+                infoHtml += `<strong>${key}:</strong> ${value}<br>`;
+            }
+            infoHtml += '</div>';
+            
+            resultDiv.innerHTML = infoHtml;
+        };
+
+        // Ejecutar verificación inicial
+        window.addEventListener('load', () => {
+            checkFileSystemAccess();
+        });
+    </script>
+</body>
+</html>

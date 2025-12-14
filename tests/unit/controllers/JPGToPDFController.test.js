@@ -19,7 +19,9 @@ describe('JPGToPDFController - Unit Tests', () => {
     mockFileManager = {
       loadFiles: vi.fn(),
       validateJPGFile: vi.fn(),
-      downloadFile: vi.fn()
+      downloadFile: vi.fn(),
+      generateDefaultFilename: vi.fn(),
+      downloadFileWithCustomLocation: vi.fn()
     };
 
     mockUIManager = {
@@ -30,7 +32,11 @@ describe('JPGToPDFController - Unit Tests', () => {
       updateFileList: vi.fn(),
       clearFileList: vi.fn(),
       enableControls: vi.fn(),
-      disableControls: vi.fn()
+      disableControls: vi.fn(),
+      showDownloadOptions: vi.fn(),
+      hideDownloadOptions: vi.fn(),
+      getCustomFilename: vi.fn(),
+      isCustomLocationSelected: vi.fn()
     };
 
     controller = new JPGToPDFController(mockPDFOperations, mockFileManager, mockUIManager);
@@ -169,37 +175,53 @@ describe('JPGToPDFController - Unit Tests', () => {
       expect(mockPDFOperations.convertJPGToPDF).not.toHaveBeenCalled();
     });
 
-    test('converts single JPG file successfully', async () => {
+    test('converts single JPG file successfully and shows download options', async () => {
       const file1 = new File(['fake-jpg-data'], 'image.jpg', { type: 'image/jpeg' });
       controller.selectedFiles = [file1];
 
       const mockPDFData = new Uint8Array([1, 2, 3, 4]);
+      const mockDefaultFilename = 'image_convertido_20231213T120000.pdf';
+      
       mockPDFOperations.convertJPGToPDF.mockResolvedValue(mockPDFData);
+      mockFileManager.generateDefaultFilename.mockReturnValue(mockDefaultFilename);
 
       await controller.handleConvert();
 
       expect(mockUIManager.disableControls).toHaveBeenCalled();
       expect(mockUIManager.showProgress).toHaveBeenCalledWith('Convirtiendo JPG a PDF...');
       expect(mockPDFOperations.convertJPGToPDF).toHaveBeenCalledWith([file1]);
-      expect(mockFileManager.downloadFile).toHaveBeenCalled();
+      expect(mockFileManager.generateDefaultFilename).toHaveBeenCalledWith('convert', 'image.jpg');
+      expect(mockUIManager.showDownloadOptions).toHaveBeenCalledWith(
+        expect.any(Blob),
+        mockDefaultFilename
+      );
       expect(mockUIManager.hideProgress).toHaveBeenCalled();
-      expect(mockUIManager.showSuccess).toHaveBeenCalledWith('JPG convertido a PDF exitosamente');
+      expect(mockUIManager.showSuccess).toHaveBeenCalledWith(
+        expect.stringContaining('JPG convertido a PDF exitosamente')
+      );
       expect(mockUIManager.enableControls).toHaveBeenCalled();
       expect(controller.selectedFiles).toHaveLength(0);
     });
 
-    test('converts multiple JPG files successfully', async () => {
+    test('converts multiple JPG files successfully and uses first file for default name', async () => {
       const file1 = new File(['fake-jpg-data'], 'image1.jpg', { type: 'image/jpeg' });
       const file2 = new File(['fake-jpg-data'], 'image2.jpg', { type: 'image/jpeg' });
       controller.selectedFiles = [file1, file2];
 
       const mockPDFData = new Uint8Array([1, 2, 3, 4]);
+      const mockDefaultFilename = 'image1_convertido_20231213T120000.pdf';
+      
       mockPDFOperations.convertJPGToPDF.mockResolvedValue(mockPDFData);
+      mockFileManager.generateDefaultFilename.mockReturnValue(mockDefaultFilename);
 
       await controller.handleConvert();
 
       expect(mockPDFOperations.convertJPGToPDF).toHaveBeenCalledWith([file1, file2]);
-      expect(mockFileManager.downloadFile).toHaveBeenCalled();
+      expect(mockFileManager.generateDefaultFilename).toHaveBeenCalledWith('convert', 'image1.jpg');
+      expect(mockUIManager.showDownloadOptions).toHaveBeenCalledWith(
+        expect.any(Blob),
+        mockDefaultFilename
+      );
       expect(mockUIManager.showSuccess).toHaveBeenCalled();
     });
 
@@ -239,7 +261,10 @@ describe('JPGToPDFController - Unit Tests', () => {
       controller.selectedFiles = [file1, file2];
 
       const mockPDFData = new Uint8Array([5, 6, 7, 8]);
+      const mockDefaultFilename = 'photo1_convertido_20231213T120000.pdf';
+      
       mockPDFOperations.convertJPGToPDF.mockResolvedValue(mockPDFData);
+      mockFileManager.generateDefaultFilename.mockReturnValue(mockDefaultFilename);
 
       await controller.handleConvert();
 
@@ -247,7 +272,8 @@ describe('JPGToPDFController - Unit Tests', () => {
       expect(mockUIManager.disableControls).toHaveBeenCalled();
       expect(mockUIManager.showProgress).toHaveBeenCalled();
       expect(mockPDFOperations.convertJPGToPDF).toHaveBeenCalled();
-      expect(mockFileManager.downloadFile).toHaveBeenCalled();
+      expect(mockFileManager.generateDefaultFilename).toHaveBeenCalled();
+      expect(mockUIManager.showDownloadOptions).toHaveBeenCalled();
       expect(mockUIManager.hideProgress).toHaveBeenCalled();
       expect(mockUIManager.showSuccess).toHaveBeenCalled();
       expect(mockUIManager.enableControls).toHaveBeenCalled();
@@ -270,6 +296,33 @@ describe('JPGToPDFController - Unit Tests', () => {
           })
         ])
       );
+    });
+
+    test('uses first file name for default filename generation', async () => {
+      const file1 = new File(['fake-jpg-data'], 'first.jpg', { type: 'image/jpeg' });
+      const file2 = new File(['fake-jpg-data'], 'second.jpg', { type: 'image/jpeg' });
+      controller.selectedFiles = [file1, file2];
+
+      const mockPDFData = new Uint8Array([1, 2, 3, 4]);
+      mockPDFOperations.convertJPGToPDF.mockResolvedValue(mockPDFData);
+      mockFileManager.generateDefaultFilename.mockReturnValue('first_convertido.pdf');
+
+      await controller.handleConvert();
+
+      expect(mockFileManager.generateDefaultFilename).toHaveBeenCalledWith('convert', 'first.jpg');
+    });
+
+    test('handles empty file list for filename generation', async () => {
+      // This shouldn't happen in normal flow, but test defensive programming
+      controller.selectedFiles = [];
+
+      await controller.handleConvert();
+
+      // Should show error before reaching filename generation
+      expect(mockUIManager.showError).toHaveBeenCalledWith(
+        expect.stringContaining('al menos 1 archivo JPG')
+      );
+      expect(mockFileManager.generateDefaultFilename).not.toHaveBeenCalled();
     });
   });
 });

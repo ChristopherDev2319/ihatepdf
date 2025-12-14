@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Integración - Descarga</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <style>
+        body {
+            padding: 20px;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+        }
+        .test-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background-color: #0056b3;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Test de Integración - Descarga Personalizada</h1>
+        
+        <div class="test-section">
+            <h2>1. Información del Sistema</h2>
+            <button class="test-button" onclick="showSystemInfo()">Mostrar Info</button>
+            <div id="systemInfo"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>2. Test de Componentes</h2>
+            <button class="test-button" onclick="testComponents()">Inicializar Componentes</button>
+            <div id="componentStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>3. Test de Descarga</h2>
+            <button class="test-button" onclick="testDownloadFlow()">Probar Flujo Completo</button>
+            <div id="downloadTest"></div>
+        </div>
+
+        <!-- Sección donde se insertará el componente DownloadOptions -->
+        <div class="test-section">
+            <h2>4. Componente DownloadOptions</h2>
+            <div id="downloadSection"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>5. Log de Eventos</h2>
+            <button class="test-button" onclick="clearLog()">Limpiar Log</button>
+            <div id="eventLog" class="log"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { FileManager } from './js/models/FileManager.js';
+        import { UIManager } from './js/views/UIManager.js';
+        import { DownloadOptions } from './js/views/components/DownloadOptions.js';
+
+        let fileManager, uiManager, downloadOptions;
+        let logDiv;
+
+        function log(message) {
+            if (!logDiv) {
+                logDiv = document.getElementById('eventLog');
+            }
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        window.showSystemInfo = function() {
+            const info = {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                isSecureContext: window.isSecureContext,
+                hasFileSystemAPI: 'showSaveFilePicker' in window,
+                location: window.location.href
+            };
+            
+            let html = '<div class="log">';
+            for (const [key, value] of Object.entries(info)) {
+                html += `<strong>${key}:</strong> ${value}<br>`;
+            }
+            html += '</div>';
+            
+            document.getElementById('systemInfo').innerHTML = html;
+            log('Información del sistema mostrada');
+        };
+
+        window.testComponents = function() {
+            try {
+                log('Inicializando FileManager...');
+                fileManager = new FileManager();
+                log('✅ FileManager inicializado');
+
+                log('Inicializando UIManager...');
+                // Crear elementos necesarios para UIManager
+                if (!document.getElementById('progressIndicator')) {
+                    const progressDiv = document.createElement('div');
+                    progressDiv.id = 'progressIndicator';
+                    progressDiv.hidden = true;
+                    document.body.appendChild(progressDiv);
+                }
+                
+                uiManager = new UIManager(fileManager);
+                log('✅ UIManager inicializado');
+
+                log('Inicializando DownloadOptions...');
+                downloadOptions = new DownloadOptions(fileManager);
+                const downloadSection = document.getElementById('downloadSection');
+                downloadSection.appendChild(downloadOptions.getElement());
+                log('✅ DownloadOptions inicializado y agregado al DOM');
+
+                document.getElementById('componentStatus').innerHTML = 
+                    '<div style="color: green;">✅ Todos los componentes inicializados correctamente</div>';
+
+            } catch (error) {
+                log(`❌ Error inicializando componentes: ${error.message}`);
+                document.getElementById('componentStatus').innerHTML = 
+                    `<div style="color: red;">❌ Error: ${error.message}</div>`;
+            }
+        };
+
+        window.testDownloadFlow = function() {
+            if (!fileManager || !downloadOptions) {
+                log('❌ Componentes no inicializados. Ejecuta "Inicializar Componentes" primero.');
+                return;
+            }
+
+            try {
+                log('Creando blob de prueba...');
+                const content = `Archivo de prueba generado el ${new Date().toLocaleString()}`;
+                const blob = new Blob([content], { type: 'text/plain' });
+                
+                log('Mostrando opciones de descarga...');
+                downloadOptions.show(blob, 'archivo_prueba.txt');
+                
+                log('✅ Opciones de descarga mostradas. Prueba la funcionalidad manualmente.');
+                document.getElementById('downloadTest').innerHTML = 
+                    '<div style="color: green;">✅ Flujo iniciado. Usa las opciones de descarga que aparecieron arriba.</div>';
+
+            } catch (error) {
+                log(`❌ Error en flujo de descarga: ${error.message}`);
+                document.getElementById('downloadTest').innerHTML = 
+                    `<div style="color: red;">❌ Error: ${error.message}</div>`;
+            }
+        };
+
+        window.clearLog = function() {
+            document.getElementById('eventLog').innerHTML = '';
+        };
+
+        // Interceptar console.log para mostrar en nuestro log
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            if (args[0] && typeof args[0] === 'string' && 
+                (args[0].includes('FileManager:') || args[0].includes('DownloadOptions:'))) {
+                log(`LOG: ${args.join(' ')}`);
+            }
+        };
+
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            log(`WARN: ${args.join(' ')}`);
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            log(`ERROR: ${args.join(' ')}`);
+        };
+
+        // Inicializar automáticamente
+        window.addEventListener('load', () => {
+            log('Página cargada, listo para pruebas');
+        });
+    </script>
+</body>
+</html>

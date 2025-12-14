@@ -19,7 +19,9 @@ describe('PDFCombineController - Unit Tests', () => {
     mockFileManager = {
       loadFiles: vi.fn(),
       validatePDFFile: vi.fn(),
-      downloadFile: vi.fn()
+      downloadFile: vi.fn(),
+      generateDefaultFilename: vi.fn(),
+      downloadFileWithCustomLocation: vi.fn()
     };
 
     mockUIManager = {
@@ -30,7 +32,11 @@ describe('PDFCombineController - Unit Tests', () => {
       updateFileList: vi.fn(),
       clearFileList: vi.fn(),
       enableControls: vi.fn(),
-      disableControls: vi.fn()
+      disableControls: vi.fn(),
+      showDownloadOptions: vi.fn(),
+      hideDownloadOptions: vi.fn(),
+      getCustomFilename: vi.fn(),
+      isCustomLocationSelected: vi.fn()
     };
 
     controller = new PDFCombineController(mockPDFOperations, mockFileManager, mockUIManager);
@@ -168,22 +174,31 @@ describe('PDFCombineController - Unit Tests', () => {
       expect(mockPDFOperations.combinePDFs).not.toHaveBeenCalled();
     });
 
-    test('combines PDFs successfully with valid files', async () => {
+    test('combines PDFs successfully with valid files and shows download options', async () => {
       const file1 = new File(['%PDF-1.4'], 'test1.pdf', { type: 'application/pdf' });
       const file2 = new File(['%PDF-1.4'], 'test2.pdf', { type: 'application/pdf' });
       controller.selectedFiles = [file1, file2];
 
       const mockCombinedPDF = new Uint8Array([1, 2, 3, 4]);
+      const mockDefaultFilename = 'test1_combinado_20231213T120000.pdf';
+      
       mockPDFOperations.combinePDFs.mockResolvedValue(mockCombinedPDF);
+      mockFileManager.generateDefaultFilename.mockReturnValue(mockDefaultFilename);
 
       await controller.handleCombine();
 
       expect(mockUIManager.disableControls).toHaveBeenCalled();
       expect(mockUIManager.showProgress).toHaveBeenCalledWith('Combinando PDFs...');
       expect(mockPDFOperations.combinePDFs).toHaveBeenCalledWith([file1, file2]);
-      expect(mockFileManager.downloadFile).toHaveBeenCalled();
+      expect(mockFileManager.generateDefaultFilename).toHaveBeenCalledWith('combine', 'test1.pdf');
+      expect(mockUIManager.showDownloadOptions).toHaveBeenCalledWith(
+        expect.any(Blob),
+        mockDefaultFilename
+      );
       expect(mockUIManager.hideProgress).toHaveBeenCalled();
-      expect(mockUIManager.showSuccess).toHaveBeenCalledWith('PDFs combinados exitosamente');
+      expect(mockUIManager.showSuccess).toHaveBeenCalledWith(
+        expect.stringContaining('PDFs combinados exitosamente')
+      );
       expect(mockUIManager.enableControls).toHaveBeenCalled();
       expect(controller.selectedFiles).toHaveLength(0);
     });
@@ -226,25 +241,46 @@ describe('PDFCombineController - Unit Tests', () => {
       controller.selectedFiles = [file1, file2];
 
       const mockCombinedPDF = new Uint8Array([5, 6, 7, 8]);
+      const mockDefaultFilename = 'doc1_combinado_20231213T120000.pdf';
+      
       mockPDFOperations.combinePDFs.mockResolvedValue(mockCombinedPDF);
+      mockFileManager.generateDefaultFilename.mockReturnValue(mockDefaultFilename);
 
       await controller.handleCombine();
-
-      // Verify the sequence of operations
-      const callOrder = [];
-      mockUIManager.disableControls.mock.invocationCallOrder.forEach(() => callOrder.push('disableControls'));
-      mockUIManager.showProgress.mock.invocationCallOrder.forEach(() => callOrder.push('showProgress'));
-      mockPDFOperations.combinePDFs.mock.invocationCallOrder.forEach(() => callOrder.push('combinePDFs'));
-      mockFileManager.downloadFile.mock.invocationCallOrder.forEach(() => callOrder.push('downloadFile'));
-      mockUIManager.hideProgress.mock.invocationCallOrder.forEach(() => callOrder.push('hideProgress'));
-      mockUIManager.showSuccess.mock.invocationCallOrder.forEach(() => callOrder.push('showSuccess'));
-      mockUIManager.enableControls.mock.invocationCallOrder.forEach(() => callOrder.push('enableControls'));
 
       // Verify all methods were called
       expect(mockUIManager.disableControls).toHaveBeenCalled();
       expect(mockPDFOperations.combinePDFs).toHaveBeenCalled();
-      expect(mockFileManager.downloadFile).toHaveBeenCalled();
+      expect(mockFileManager.generateDefaultFilename).toHaveBeenCalled();
+      expect(mockUIManager.showDownloadOptions).toHaveBeenCalled();
       expect(mockUIManager.enableControls).toHaveBeenCalled();
+    });
+
+    test('uses first file name for default filename generation', async () => {
+      const file1 = new File(['%PDF-1.4'], 'document1.pdf', { type: 'application/pdf' });
+      const file2 = new File(['%PDF-1.4'], 'document2.pdf', { type: 'application/pdf' });
+      controller.selectedFiles = [file1, file2];
+
+      const mockCombinedPDF = new Uint8Array([1, 2, 3, 4]);
+      mockPDFOperations.combinePDFs.mockResolvedValue(mockCombinedPDF);
+      mockFileManager.generateDefaultFilename.mockReturnValue('document1_combinado.pdf');
+
+      await controller.handleCombine();
+
+      expect(mockFileManager.generateDefaultFilename).toHaveBeenCalledWith('combine', 'document1.pdf');
+    });
+
+    test('handles empty file list for filename generation', async () => {
+      // This shouldn't happen in normal flow, but test defensive programming
+      controller.selectedFiles = [];
+
+      await controller.handleCombine();
+
+      // Should show error before reaching filename generation
+      expect(mockUIManager.showError).toHaveBeenCalledWith(
+        expect.stringContaining('al menos 2 archivos')
+      );
+      expect(mockFileManager.generateDefaultFilename).not.toHaveBeenCalled();
     });
   });
 });
