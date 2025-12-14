@@ -28,71 +28,24 @@
     <main class="main">
       <!-- Operation Selector -->
       <section class="operation-selector" aria-label="Seleccionar operación">
-        <h2 class="visually-hidden">Operaciones disponibles</h2>
-        <div class="operation-selector__buttons">
-          <button 
-            type="button" 
-            class="operation-btn" 
-            data-operation="combine"
-            aria-pressed="false">
-            Combinar
-          </button>
-          <button 
-            type="button" 
-            class="operation-btn" 
-            data-operation="split"
-            aria-pressed="false">
-            Dividir
-          </button>
-          <button 
-            type="button" 
-            class="operation-btn" 
-            data-operation="compress"
-            aria-pressed="false">
-            Comprimir
-          </button>
-          <button 
-            type="button" 
-            class="operation-btn" 
-            data-operation="rotate"
-            aria-pressed="false">
-            Rotar
-          </button>
-          <button 
-            type="button" 
-            class="operation-btn" 
-            data-operation="jpg-to-pdf"
-            aria-pressed="false">
-            JPG→PDF
-          </button>
-          <button 
-            type="button" 
-            class="operation-btn" 
-            data-operation="png-to-pdf"
-            aria-pressed="false">
-            PNG→PDF
-          </button>
-          <button 
-            type="button" 
-            class="operation-btn" 
-            data-operation="images-to-pdf"
-            aria-pressed="false">
-            IMG→PDF
-          </button>
-          <button 
-            type="button" 
-            class="operation-btn" 
-            data-operation="add-page-numbers"
-            aria-pressed="false">
-            Numerar
-          </button>
-          <button 
-            type="button" 
-            class="operation-btn" 
-            data-operation="add-watermark"
-            aria-pressed="false">
-            Marca de agua
-          </button>
+        <label for="operationSelect" class="operation-selector__label">¿Qué quieres hacer?</label>
+        <div class="operation-dropdown">
+          <select id="operationSelect" class="operation-select">
+            <option value="combine">📄 Combinar PDFs</option>
+            <option value="split">✂️ Dividir PDF</option>
+            <option value="compress">📦 Comprimir PDF</option>
+            <option value="rotate">🔄 Rotar páginas</option>
+            <option value="jpg-to-pdf">🖼️ JPG a PDF</option>
+            <option value="png-to-pdf">🖼️ PNG a PDF</option>
+            <option value="images-to-pdf">🖼️ Imágenes a PDF</option>
+            <option value="add-page-numbers">🔢 Numerar páginas</option>
+            <option value="add-watermark">💧 Marca de agua</option>
+          </select>
+          <div class="operation-dropdown__arrow">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
         </div>
       </section>
 
@@ -339,9 +292,12 @@
 
       <!-- File Preview List -->
       <section class="file-preview" id="filePreview" aria-label="Archivos cargados">
-        <h2 class="file-preview__title">Archivos seleccionados</h2>
+        <h2 class="file-preview__title">
+          Archivos seleccionados
+          <span class="file-preview__count" id="fileCount" hidden>0</span>
+        </h2>
         <ul class="file-preview__list" id="fileList" role="list">
-          <!-- File items will be inserted here dynamically -->
+          <li class="file-preview__empty">Sube archivos para comenzar</li>
         </ul>
       </section>
 

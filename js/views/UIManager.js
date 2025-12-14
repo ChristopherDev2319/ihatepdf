@@ -135,12 +135,23 @@ export class UIManager {
       return;
     }
 
+    // Actualizar contador
+    const fileCount = document.getElementById('fileCount');
+    if (fileCount) {
+      if (files && files.length > 0) {
+        fileCount.textContent = files.length;
+        fileCount.hidden = false;
+      } else {
+        fileCount.hidden = true;
+      }
+    }
+
     // Limpiar lista actual
     this.fileList.innerHTML = '';
 
     // Si no hay archivos, mostrar mensaje
     if (!files || files.length === 0) {
-      this.fileList.innerHTML = '<li class="file-preview__empty">No hay archivos seleccionados</li>';
+      this.fileList.innerHTML = '<li class="file-preview__empty">Sube archivos para comenzar</li>';
       return;
     }
 
@@ -157,6 +168,15 @@ export class UIManager {
       const escapedName = this._escapeHtml(fileInfo.name);
       
       li.innerHTML = `
+        <div class="file-preview__icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
         <div class="file-preview__info">
           <span class="file-preview__name">${escapedName}</span>
           <span class="file-preview__meta">${fileSize}${pageInfo}</span>
@@ -172,6 +192,14 @@ export class UIManager {
 
       this.fileList.appendChild(li);
     });
+
+    // Scroll suave hacia la sección de archivos para que el usuario los vea
+    const filePreview = document.getElementById('filePreview');
+    if (filePreview) {
+      setTimeout(() => {
+        filePreview.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
   }
 
   /**

@@ -51,7 +51,7 @@ class App {
     this.currentController = null;
     
     // Elementos del DOM
-    this.operationButtons = document.querySelectorAll('.operation-btn');
+    this.operationSelect = document.getElementById('operationSelect');
     this.fileInput = document.getElementById('fileInput');
     this.dropzone = document.getElementById('dropzone');
     this.processBtn = document.getElementById('processBtn');
@@ -76,6 +76,7 @@ class App {
    * Inicializa la aplicación configurando event listeners
    */
   init() {
+    
     // Configurar event listeners para botones de operación
     this.setupOperationButtons();
     
@@ -98,16 +99,14 @@ class App {
   }
   
   /**
-   * Configura event listeners para botones de operación
+   * Configura event listener para el selector de operación
    */
   setupOperationButtons() {
-    this.operationButtons.forEach(button => {
-      button.addEventListener('click', () => {
-        const operation = button.getAttribute('data-operation');
-        this.selectOperation(operation);
+    if (this.operationSelect) {
+      this.operationSelect.addEventListener('change', (e) => {
+        this.selectOperation(e.target.value);
       });
-      
-    });
+    }
   }
   
   /**
@@ -125,13 +124,10 @@ class App {
     this.currentOperation = operation;
     this.currentController = this.controllers[operation];
     
-    // Actualizar botones de operación (aria-pressed)
-    this.operationButtons.forEach(button => {
-      const btnOperation = button.getAttribute('data-operation');
-      const isSelected = btnOperation === operation;
-      button.setAttribute('aria-pressed', isSelected.toString());
-      button.classList.toggle('operation-btn--active', isSelected);
-    });
+    // Actualizar el select si es necesario
+    if (this.operationSelect && this.operationSelect.value !== operation) {
+      this.operationSelect.value = operation;
+    }
     
     // Actualizar controles específicos de operación
     this.updateOperationControls(operation);
