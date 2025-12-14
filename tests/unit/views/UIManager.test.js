@@ -28,6 +28,7 @@ describe('UIManager - Unit Tests', () => {
           <input id="pageRanges">
           <input id="pageSelection">
           <select id="rotationAngle"></select>
+          <div id="downloadSection"></div>
         </body>
       </html>
     `);
@@ -35,7 +36,13 @@ describe('UIManager - Unit Tests', () => {
     global.document = dom.window.document;
     global.window = dom.window;
     
-    uiManager = new UIManager();
+    // Mock del FileManager para las pruebas con DownloadOptions
+    const mockFileManager = {
+      downloadFile: vi.fn(),
+      downloadFileWithCustomLocation: vi.fn().mockResolvedValue(undefined)
+    };
+    
+    uiManager = new UIManager(mockFileManager);
   });
 
   afterEach(() => {
@@ -227,6 +234,100 @@ describe('UIManager - Unit Tests', () => {
 
       expect(uiManager.dropzone.classList.contains('file-upload__dropzone--disabled')).toBe(false);
       expect(uiManager.dropzone.getAttribute('tabindex')).toBe('0');
+    });
+  });
+
+  describe('Download Options', () => {
+    test('showDownloadOptions should show download options with correct parameters', () => {
+      const mockBlob = new Blob(['test'], { type: 'application/pdf' });
+      const defaultFilename = 'test_document.pdf';
+      
+      uiManager.showDownloadOptions(mockBlob, defaultFilename);
+      
+      // Verificar que el componente DownloadOptions está visible
+      const downloadOptionsElement = dom.window.document.querySelector('#downloadOptions');
+      expect(downloadOptionsElement).toBeTruthy();
+      expect(downloadOptionsElement.hidden).toBe(false);
+      
+      // Verificar que el placeholder del input tiene el nombre correcto
+      const filenameInput = downloadOptionsElement.querySelector('#customFilename');
+      expect(filenameInput.placeholder).toBe(defaultFilename);
+    });
+
+    test('hideDownloadOptions should hide download options', () => {
+      const mockBlob = new Blob(['test'], { type: 'application/pdf' });
+      
+      uiManager.showDownloadOptions(mockBlob, 'test.pdf');
+      uiManager.hideDownloadOptions();
+      
+      const downloadOptionsElement = dom.window.document.querySelector('#downloadOptions');
+      expect(downloadOptionsElement.hidden).toBe(true);
+    });
+
+    test('getCustomFilename should return filename from DownloadOptions component', () => {
+      const mockBlob = new Blob(['test'], { type: 'application/pdf' });
+      const defaultFilename = 'default.pdf';
+      
+      uiManager.showDownloadOptions(mockBlob, defaultFilename);
+      
+      // Sin nombre personalizado, debería devolver el por defecto
+      expect(uiManager.getCustomFilename()).toBe(defaultFilename);
+      
+      // Con nombre personalizado
+      const filenameInput = dom.window.document.querySelector('#customFilename');
+      filenameInput.value = 'custom.pdf';
+      expect(uiManager.getCustomFilename()).toBe('custom.pdf');
+    });
+
+    test('isCustomLocationSelected should always return true (new behavior)', () => {
+      const mockBlob = new Blob(['test'], { type: 'application/pdf' });
+      
+      uiManager.showDownloadOptions(mockBlob, 'test.pdf');
+      
+      // Should always be true now
+      expect(uiManager.isCustomLocationSelected()).toBe(true);
+    });
+
+    test('should handle missing DownloadOptions component gracefully', () => {
+      // Crear UIManager sin FileManager para simular componente no inicializado
+      const uiManagerWithoutDownload = new UIManager();
+      
+      // No debería lanzar errores
+      expect(() => {
+        uiManagerWithoutDownload.showDownloadOptions(new Blob(['test']), 'test.pdf');
+      }).not.toThrow();
+      
+      expect(() => {
+        uiManagerWithoutDownload.hideDownloadOptions();
+      }).not.toThrow();
+      
+      expect(uiManagerWithoutDownload.getCustomFilename()).toBe('');
+      expect(uiManagerWithoutDownload.isCustomLocationSelected()).toBe(true);
+    });
+  });
+
+  describe('Component Cleanup', () => {
+    test('destroy should clean up DownloadOptions component', () => {
+      const mockBlob = new Blob(['test'], { type: 'application/pdf' });
+      
+      uiManager.showDownloadOptions(mockBlob, 'test.pdf');
+      
+      // Verificar que el componente existe
+      expect(uiManager.downloadOptions).toBeTruthy();
+      
+      uiManager.destroy();
+      
+      // Verificar que se limpió
+      expect(uiManager.downloadOptions).toBe(null);
+    });
+
+    test('destroy should clear notification timeout', () => {
+      uiManager.showSuccess('Test message', 5000);
+      expect(uiManager.notificationTimeout).toBeTruthy();
+      
+      uiManager.destroy();
+      
+      expect(uiManager.notificationTimeout).toBe(null);
     });
   });
 

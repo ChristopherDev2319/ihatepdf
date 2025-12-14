@@ -74,10 +74,15 @@ export class PDFCompressController {
       // Comprimir el PDF usando el modelo
       const result = await this.pdfOperations.compressPDF(this.selectedFile);
       
-      // Crear blob y descargar
+      // Crear blob para descarga
       const blob = new Blob([result.data], { type: 'application/pdf' });
-      const filename = this._generateCompressedFilename();
-      this.fileManager.downloadFile(blob, filename);
+      
+      // Generar nombre por defecto basado en la operación
+      const defaultFilename = this.fileManager.generateDefaultFilename('compress', this.selectedFile.name);
+      
+      // Mostrar opciones de descarga
+      this.uiManager.hideProgress();
+      this.uiManager.showDownloadOptions(blob, defaultFilename);
       
       // Mostrar éxito con información de tamaños y porcentaje
       const successMessage = this._formatSuccessMessage(
@@ -85,9 +90,7 @@ export class PDFCompressController {
         result.compressedSize,
         result.reductionPercentage
       );
-      
-      this.uiManager.hideProgress();
-      this.uiManager.showSuccess(successMessage);
+      this.uiManager.showSuccess(successMessage + ' Personaliza las opciones de descarga si lo deseas.');
       
       // Limpiar selección
       this.selectedFile = null;
@@ -130,15 +133,7 @@ export class PDFCompressController {
     }
   }
 
-  /**
-   * Genera un nombre de archivo para el PDF comprimido
-   * @private
-   * @returns {string} Nombre del archivo
-   */
-  _generateCompressedFilename() {
-    const originalName = this.selectedFile.name.replace('.pdf', '');
-    return `${originalName}_compressed.pdf`;
-  }
+
 
   /**
    * Formatea el mensaje de éxito con información de tamaños y porcentaje

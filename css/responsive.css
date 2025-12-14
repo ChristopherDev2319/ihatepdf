@@ -421,4 +421,19 @@
   section {
     margin-bottom: var(--spacing-sm);
   }
+
+  /* Download Options en móviles horizontal */
+  .download-options {
+    padding: var(--spacing-sm);
+    margin: var(--spacing-sm) 0;
+  }
+
+  .download-options__title {
+    font-size: var(--font-size-small);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .download-options__field {
+    margin-bottom: var(--spacing-sm);
+  }
 }

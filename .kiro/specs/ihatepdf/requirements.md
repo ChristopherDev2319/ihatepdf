@@ -16,6 +16,9 @@ IHATEPDF es una aplicación web que permite a los usuarios manipular archivos PD
 - **Rotar**: Cambiar la orientación de las páginas de un PDF
 - **Conversión JPG a PDF**: Transformar imágenes en formato JPG a documentos PDF
 - **Arquitectura MVC**: Patrón de diseño que separa Modelo (datos), Vista (interfaz) y Controlador (lógica)
+- **Nombre personalizado**: Nombre de archivo especificado por el usuario para el documento resultante
+- **Carpeta de Descargas**: Directorio por defecto del navegador para archivos descargados
+- **Diálogo de guardado**: Interfaz del navegador que permite al usuario seleccionar ubicación de archivo
 
 ## Requisitos
 
@@ -138,3 +141,15 @@ IHATEPDF es una aplicación web que permite a los usuarios manipular archivos PD
 3. WHEN el Usuario desea eliminar un archivo de la selección, THEN el Sistema SHALL permitir remover archivos individuales antes de procesar
 4. WHEN el Usuario carga imágenes JPG, THEN el Sistema SHALL mostrar miniaturas de las imágenes
 5. THE Sistema SHALL mostrar información relevante como nombre de archivo y tamaño para cada archivo cargado
+
+### Requisito 11
+
+**Historia de Usuario:** Como usuario, quiero personalizar el nombre del archivo PDF resultante y elegir dónde guardarlo, para tener control sobre la organización de mis archivos descargados.
+
+#### Criterios de Aceptación
+
+1. WHEN el Usuario completa una operación de procesamiento, THEN el Sistema SHALL mostrar un campo de entrada para personalizar el nombre del archivo
+2. WHEN el Usuario no especifica un nombre personalizado, THEN el Sistema SHALL usar un nombre por defecto basado en la operación realizada
+3. WHEN el Usuario hace clic en descargar, THEN el Sistema SHALL descargar por defecto a la carpeta de Descargas del navegador
+4. WHEN el Usuario selecciona la opción "Elegir ruta", THEN el Sistema SHALL abrir un diálogo para seleccionar la ubicación de guardado
+5. WHEN el Usuario especifica una ruta personalizada, THEN el Sistema SHALL guardar el archivo en la ubicación seleccionada

@@ -84,6 +84,8 @@ class FileManager {
   validatePDFFile(file: File): boolean
   validateJPGFile(file: File): boolean
   downloadFile(blob: Blob, filename: string): void
+  downloadFileWithCustomLocation(blob: Blob, filename: string): Promise<void>
+  generateDefaultFilename(operation: string, originalFilename?: string): string
   createBlobURL(data: Uint8Array, mimeType: string): string
 }
 ```
@@ -116,6 +118,10 @@ class UIManager {
   clearFileList(): void
   enableControls(): void
   disableControls(): void
+  showDownloadOptions(defaultFilename: string): void
+  hideDownloadOptions(): void
+  getCustomFilename(): string
+  isCustomLocationSelected(): boolean
 }
 ```
 
@@ -126,6 +132,7 @@ Componentes reutilizables de UI:
 - ProgressIndicator: Indicador de progreso para operaciones
 - NotificationBanner: Mensajes de éxito/error
 - OperationSelector: Selector de operaciones disponibles
+- DownloadOptions: Interfaz para personalizar nombre y ubicación de descarga
 
 ### Controlador (Controller)
 
@@ -221,7 +228,19 @@ class JPGToPDFController {
   files: FileMetadata[],
   isProcessing: boolean,
   selectedPages: number[],
-  rotationAngle: number
+  rotationAngle: number,
+  showDownloadOptions: boolean,
+  customFilename: string,
+  useCustomLocation: boolean
+}
+```
+
+### Download Options
+```javascript
+{
+  filename: string,
+  useCustomLocation: boolean,
+  defaultFilename: string
 }
 ```
 
@@ -340,6 +359,16 @@ Antes de definir las propiedades finales, se realizó un análisis para eliminar
 *Para cualquier* operación completada (exitosa o fallida), todos los datos temporales de archivos deben ser liberados de la memoria.
 **Valida: Requisitos 7.2, 7.5**
 
+### Propiedades de Personalización de Descarga
+
+**Propiedad 22: Generación de nombres por defecto**
+*Para cualquier* operación de procesamiento completada sin nombre personalizado, el sistema debe generar un nombre de archivo por defecto que incluya el tipo de operación realizada.
+**Valida: Requisitos 11.2**
+
+**Propiedad 23: Uso de ruta personalizada**
+*Para cualquier* operación donde el usuario especifica una ruta personalizada, el sistema debe usar esa ruta en lugar del comportamiento de descarga por defecto.
+**Valida: Requisitos 11.5**
+
 ## Manejo de Errores
 
 ### Estrategia General
@@ -444,6 +473,28 @@ test('combining PDFs preserves total page count', async () => {
     { numRuns: 100 }
   );
 });
+
+// Feature: ihatepdf, Property 22: Generación de nombres por defecto
+test('generates default filename based on operation', async () => {
+  await fc.assert(
+    fc.asyncProperty(
+      fc.oneof(
+        fc.constant('combine'),
+        fc.constant('split'),
+        fc.constant('compress'),
+        fc.constant('rotate'),
+        fc.constant('convert')
+      ),
+      fc.option(fc.string({ minLength: 1, maxLength: 50 })),
+      (operation, originalFilename) => {
+        const defaultName = fileManager.generateDefaultFilename(operation, originalFilename);
+        expect(defaultName).toContain(operation);
+        expect(defaultName).toMatch(/\.pdf$/);
+      }
+    ),
+    { numRuns: 100 }
+  );
+});
 ```
 
 ### Tests Unitarios
@@ -489,7 +540,7 @@ Objetivo de cobertura:
 - Líneas: >80%
 - Funciones: >85%
 - Ramas: >75%
-- Propiedades de corrección: 100% (todas las 21 propiedades deben tener tests)
+- Propiedades de corrección: 100% (todas las 23 propiedades deben tener tests)
 
 ## Consideraciones de Implementación
 
@@ -526,6 +577,7 @@ Objetivo de cobertura:
 - Blob API
 - ArrayBuffer
 - URL.createObjectURL
+- File System Access API (para ubicación personalizada, con fallback a descarga normal)
 
 ### Estructura de Archivos
 
@@ -610,6 +662,13 @@ ihatepdf/
 │                                             │
 │           [Procesar]                        │
 │                                             │
+│  Opciones de descarga: (aparece después)   │
+│  ┌───────────────────────────────────────┐ │
+│  │ Nombre: [documento_combinado.pdf]    │ │
+│  │ □ Elegir ruta personalizada          │ │
+│  │           [Descargar]                 │ │
+│  └───────────────────────────────────────┘ │
+│                                             │
 └─────────────────────────────────────────────┘
 ```
 
@@ -648,7 +707,11 @@ ihatepdf/
 3. Sistema muestra lista de archivos con opción de reordenar
 4. Usuario hace clic en "Procesar"
 5. Sistema muestra progreso
-6. Sistema ofrece descarga del PDF combinado
+6. Sistema muestra opciones de descarga con nombre por defecto
+7. Usuario puede personalizar nombre del archivo (opcional)
+8. Usuario puede elegir "Elegir ruta" para ubicación personalizada (opcional)
+9. Usuario hace clic en "Descargar"
+10. Sistema descarga el PDF combinado
 
 ### Flujo de División
 

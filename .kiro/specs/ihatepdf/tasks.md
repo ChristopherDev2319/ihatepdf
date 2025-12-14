@@ -350,32 +350,136 @@
     - Test de que arbitraryPageRange genera rangos válidos
     - _Requisitos: Testing_
 
-- [-] 20. Escribir test de propiedad para validez de archivos de salida
-  - [ ] 20.1 Implementar test de propiedad general
+- [x] 20. Escribir test de propiedad para validez de archivos de salida
+  - [x] 20.1 Implementar test de propiedad general
     - **Propiedad 15: Validez de archivos de salida**
     - **Valida: Requisitos 1.3, 2.4, 3.4, 4.4, 5.3**
   
-  - [ ] 20.2 Implementar test de propiedad para extracción de metadatos
+  - [x] 20.2 Implementar test de propiedad para extracción de metadatos
     - **Propiedad 16: Extracción de metadatos**
     - **Valida: Requisitos 10.1, 10.5**
 
-- [ ] 21. Implementar características de accesibilidad
-  - [ ] 21.1 Agregar soporte de teclado
+- [x] 21. Implementar funcionalidad de personalización de descarga
+  - [x] 21.1 Actualizar FileManager con métodos de descarga personalizada
+    - Implementar generateDefaultFilename() para generar nombres basados en operación
+    - Implementar downloadFileWithCustomLocation() usando File System Access API
+    - Agregar fallback para navegadores sin soporte de File System Access API
+    - _Requisitos: 11.2, 11.4, 11.5_
+  
+  - [x] 21.2 Escribir test de propiedad para generación de nombres por defecto
+    - **Propiedad 22: Generación de nombres por defecto**
+    - **Valida: Requisitos 11.2**
+  
+  - [x] 21.3 Escribir test de propiedad para uso de ruta personalizada
+    - **Propiedad 23: Uso de ruta personalizada**
+    - **Valida: Requisitos 11.5**
+  
+  - [x] 21.4 Escribir tests unitarios para FileManager actualizado
+    - Test de generación de nombres por defecto para cada operación
+    - Test de detección de soporte de File System Access API
+    - Test de fallback a descarga normal cuando no hay soporte
+    - _Requisitos: 11.2, 11.4, 11.5_
+
+- [x] 22. Implementar componente DownloadOptions
+  - [x] 22.1 Crear componente DownloadOptions
+    - Implementar campo de entrada para nombre personalizado
+    - Implementar checkbox para "Elegir ruta"
+    - Implementar botón de descarga
+    - Conectar con FileManager para descargas
+    - _Requisitos: 11.1, 11.3, 11.4_
+  
+  - [x] 22.2 Actualizar UIManager para opciones de descarga
+    - Implementar showDownloadOptions() y hideDownloadOptions()
+    - Implementar getCustomFilename() e isCustomLocationSelected()
+    - Integrar componente DownloadOptions en la interfaz
+    - _Requisitos: 11.1_
+  
+  - [x] 22.3 Escribir tests unitarios para DownloadOptions
+    - Test de mostrar/ocultar opciones de descarga
+    - Test de obtener nombre personalizado
+    - Test de detectar selección de ubicación personalizada
+    - _Requisitos: 11.1_
+
+- [x] 23. Actualizar controladores para usar opciones de descarga
+  - [x] 23.1 Actualizar PDFCombineController
+    - Mostrar opciones de descarga después de procesamiento exitoso
+    - Usar nombre personalizado y ubicación si se especifica
+    - _Requisitos: 11.1, 11.2, 11.3, 11.4, 11.5_
+  
+  - [x] 23.2 Actualizar PDFSplitController
+    - Mostrar opciones de descarga para archivos múltiples
+    - Generar nombres por defecto para cada archivo dividido
+    - _Requisitos: 11.1, 11.2, 11.3, 11.4, 11.5_
+  
+  - [x] 23.3 Actualizar PDFCompressController
+    - Mostrar opciones de descarga después de compresión
+    - Usar nombre por defecto que indique compresión
+    - _Requisitos: 11.1, 11.2, 11.3, 11.4, 11.5_
+  
+  - [x] 23.4 Actualizar PDFRotateController
+    - Mostrar opciones de descarga después de rotación
+    - Usar nombre por defecto que indique rotación
+    - _Requisitos: 11.1, 11.2, 11.3, 11.4, 11.5_
+  
+  - [x] 23.5 Actualizar JPGToPDFController
+    - Mostrar opciones de descarga después de conversión
+    - Usar nombre por defecto que indique conversión
+    - _Requisitos: 11.1, 11.2, 11.3, 11.4, 11.5_
+  
+  - [x] 23.6 Escribir tests unitarios para controladores actualizados
+    - Test de mostrar opciones de descarga en cada controlador
+    - Test de uso de nombres personalizados
+    - Test de integración con FileManager actualizado
+    - _Requisitos: 11.1, 11.2, 11.3, 11.4, 11.5_
+
+- [x] 24. Actualizar interfaz HTML y CSS
+  - [x] 24.1 Agregar elementos HTML para opciones de descarga
+    - Agregar campo de entrada para nombre personalizado
+    - Agregar checkbox para "Elegir ruta"
+    - Agregar botón de descarga
+    - Ocultar por defecto, mostrar después de procesamiento
+    - _Requisitos: 11.1, 11.3, 11.4_
+  
+  - [x] 24.2 Actualizar estilos CSS para opciones de descarga
+    - Estilizar campo de entrada de nombre
+    - Estilizar checkbox y etiqueta
+    - Estilizar botón de descarga
+    - Agregar animaciones de mostrar/ocultar
+    - _Requisitos: 11.1_
+
+- [x] 25. Escribir tests de integración para flujo completo de descarga
+  - [x] 25.1 Test de flujo con nombre por defecto
+    - Test de procesamiento → mostrar opciones → descargar con nombre por defecto
+    - _Requisitos: 11.1, 11.2, 11.3_
+  
+  - [x] 25.2 Test de flujo con nombre personalizado
+    - Test de procesamiento → personalizar nombre → descargar
+    - _Requisitos: 11.1, 11.3_
+  
+  - [x] 25.3 Test de flujo con ubicación personalizada
+    - Test de procesamiento → elegir ruta → descargar en ubicación personalizada
+    - _Requisitos: 11.1, 11.4, 11.5_
+
+- [x] 26. Checkpoint - Verificar funcionalidad de descarga personalizada
+  - Asegurar que todos los tests pasen, preguntar al usuario si surgen dudas
+
+- [ ] 27. Implementar características de accesibilidad
+  - [ ] 27.1 Agregar soporte de teclado
     - Implementar navegación por teclado en todos los controles
     - Implementar atajos de teclado para operaciones comunes
     - Asegurar orden de tabulación lógico
     - _Requisitos: 6.1, 6.2_
   
-  - [ ] 21.2 Agregar ARIA labels y roles
+  - [ ] 27.2 Agregar ARIA labels y roles
     - Agregar labels descriptivos a todos los controles
     - Agregar roles ARIA apropiados
     - Implementar live regions para notificaciones
     - _Requisitos: 6.1, 9.3, 9.4_
   
-  - [ ] 21.3 Implementar gestión de foco
+  - [ ] 27.3 Implementar gestión de foco
     - Gestionar foco durante operaciones
     - Retornar foco a elementos apropiados después de acciones
     - _Requisitos: 6.1, 9.1_
 
-- [ ] 22. Checkpoint final - Verificar que todo funciona
+- [ ] 28. Checkpoint final - Verificar que todo funciona
   - Asegurar que todos los tests pasen, preguntar al usuario si surgen dudas

@@ -339,4 +339,360 @@ export class PDFOperations {
       this.cleanupArrayBuffers(arrayBuffers);
     }
   }
+
+  /**
+   * Convierte imágenes PNG a un documento PDF
+   * @param {File[]|Array<{arrayBuffer: ArrayBuffer}>} pngFiles - Array de archivos PNG a convertir
+   * @returns {Promise<Uint8Array>} - PDF con las imágenes como Uint8Array
+   */
+  async convertPNGToPDF(pngFiles) {
+    if (!pngFiles || pngFiles.length === 0) {
+      throw new Error('Se requiere al menos un archivo PNG');
+    }
+
+    const arrayBuffers = [];
+    
+    try {
+      // Crear un nuevo documento PDF
+      const pdfDoc = await PDFLibDocument.create();
+
+      // Iterar sobre cada imagen en el orden proporcionado
+      for (const file of pngFiles) {
+        // Leer el archivo como ArrayBuffer
+        let arrayBuffer;
+        if (file.arrayBuffer && typeof file.arrayBuffer === 'function') {
+          arrayBuffer = await file.arrayBuffer();
+        } else if (file.arrayBuffer instanceof ArrayBuffer) {
+          arrayBuffer = file.arrayBuffer;
+        } else {
+          throw new Error('Formato de archivo inválido: debe ser File u objeto con propiedad arrayBuffer');
+        }
+
+        arrayBuffers.push(arrayBuffer);
+
+        // Convertir ArrayBuffer a Uint8Array
+        const imageBytes = new Uint8Array(arrayBuffer);
+
+        // Embeber la imagen PNG en el PDF
+        const pngImage = await pdfDoc.embedPng(imageBytes);
+
+        // Obtener dimensiones de la imagen
+        const { width, height } = pngImage.scale(1);
+
+        // Crear una página con el tamaño de la imagen
+        const page = pdfDoc.addPage([width, height]);
+
+        // Dibujar la imagen en la página
+        page.drawImage(pngImage, {
+          x: 0,
+          y: 0,
+          width,
+          height
+        });
+      }
+
+      // Guardar y retornar el PDF
+      return await pdfDoc.save();
+    } finally {
+      // Limpiar ArrayBuffers después de la operación
+      this.cleanupArrayBuffers(arrayBuffers);
+    }
+  }
+
+  /**
+   * Convierte imágenes (JPG y PNG) a un documento PDF
+   * @param {File[]|Array<{arrayBuffer: ArrayBuffer}>} imageFiles - Array de archivos de imagen a convertir
+   * @returns {Promise<Uint8Array>} - PDF con las imágenes como Uint8Array
+   */
+  async convertImagesToPDF(imageFiles) {
+    if (!imageFiles || imageFiles.length === 0) {
+      throw new Error('Se requiere al menos un archivo de imagen');
+    }
+
+    const arrayBuffers = [];
+    
+    try {
+      // Crear un nuevo documento PDF
+      const pdfDoc = await PDFLibDocument.create();
+
+      // Iterar sobre cada imagen en el orden proporcionado
+      for (const file of imageFiles) {
+        // Leer el archivo como ArrayBuffer
+        let arrayBuffer;
+        if (file.arrayBuffer && typeof file.arrayBuffer === 'function') {
+          arrayBuffer = await file.arrayBuffer();
+        } else if (file.arrayBuffer instanceof ArrayBuffer) {
+          arrayBuffer = file.arrayBuffer;
+        } else {
+          throw new Error('Formato de archivo inválido: debe ser File u objeto con propiedad arrayBuffer');
+        }
+
+        arrayBuffers.push(arrayBuffer);
+
+        // Convertir ArrayBuffer a Uint8Array
+        const imageBytes = new Uint8Array(arrayBuffer);
+
+        // Determinar tipo de imagen por el nombre del archivo o contenido
+        let image;
+        const fileName = file.name ? file.name.toLowerCase() : '';
+        
+        if (fileName.endsWith('.png') || this._isPNG(imageBytes)) {
+          image = await pdfDoc.embedPng(imageBytes);
+        } else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || this._isJPEG(imageBytes)) {
+          image = await pdfDoc.embedJpg(imageBytes);
+        } else {
+          throw new Error(`Formato de imagen no soportado: ${fileName}. Solo se admiten JPG y PNG.`);
+        }
+
+        // Obtener dimensiones de la imagen
+        const { width, height } = image.scale(1);
+
+        // Crear una página con el tamaño de la imagen
+        const page = pdfDoc.addPage([width, height]);
+
+        // Dibujar la imagen en la página
+        page.drawImage(image, {
+          x: 0,
+          y: 0,
+          width,
+          height
+        });
+      }
+
+      // Guardar y retornar el PDF
+      return await pdfDoc.save();
+    } finally {
+      // Limpiar ArrayBuffers después de la operación
+      this.cleanupArrayBuffers(arrayBuffers);
+    }
+  }
+
+  /**
+   * Agrega números de página a un PDF
+   * @param {File|{arrayBuffer: ArrayBuffer}} pdfFile - Archivo PDF
+   * @param {Object} options - Opciones de numeración
+   * @param {string} options.position - Posición ('bottom-right', 'bottom-left', 'bottom-center', 'top-right', 'top-left', 'top-center')
+   * @param {number} options.fontSize - Tamaño de fuente (default: 12)
+   * @param {number} options.startPage - Página inicial para numerar (default: 1)
+   * @param {string} options.format - Formato del número ('number', 'page-of-total') (default: 'number')
+   * @returns {Promise<Uint8Array>} - PDF con números de página como Uint8Array
+   */
+  async addPageNumbers(pdfFile, options = {}) {
+    if (!pdfFile) {
+      throw new Error('Se requiere un archivo PDF');
+    }
+
+    const {
+      position = 'bottom-right',
+      fontSize = 12,
+      startPage = 1,
+      format = 'number'
+    } = options;
+
+    const arrayBuffers = [];
+    
+    try {
+      // Leer el archivo como ArrayBuffer
+      let arrayBuffer;
+      if (pdfFile.arrayBuffer && typeof pdfFile.arrayBuffer === 'function') {
+        arrayBuffer = await pdfFile.arrayBuffer();
+      } else if (pdfFile.arrayBuffer instanceof ArrayBuffer) {
+        arrayBuffer = pdfFile.arrayBuffer;
+      } else {
+        throw new Error('Formato de archivo inválido: debe ser File u objeto con propiedad arrayBuffer');
+      }
+
+      arrayBuffers.push(arrayBuffer);
+
+      // Cargar el PDF
+      const pdfDoc = await PDFLibDocument.load(arrayBuffer);
+      const pages = pdfDoc.getPages();
+      const totalPages = pages.length;
+
+      // Iterar sobre cada página
+      pages.forEach((page, index) => {
+        const pageNumber = index + 1;
+        
+        // Solo numerar desde la página de inicio especificada
+        if (pageNumber < startPage) return;
+
+        // Generar texto del número de página
+        let pageText;
+        if (format === 'page-of-total') {
+          pageText = `${pageNumber} de ${totalPages}`;
+        } else {
+          pageText = `${pageNumber}`;
+        }
+
+        // Calcular posición
+        const { width, height } = page.getSize();
+        let x, y;
+
+        switch (position) {
+          case 'bottom-left':
+            x = 30;
+            y = 30;
+            break;
+          case 'bottom-center':
+            x = width / 2 - (pageText.length * fontSize) / 4;
+            y = 30;
+            break;
+          case 'bottom-right':
+            x = width - 30 - (pageText.length * fontSize) / 2;
+            y = 30;
+            break;
+          case 'top-left':
+            x = 30;
+            y = height - 30;
+            break;
+          case 'top-center':
+            x = width / 2 - (pageText.length * fontSize) / 4;
+            y = height - 30;
+            break;
+          case 'top-right':
+            x = width - 30 - (pageText.length * fontSize) / 2;
+            y = height - 30;
+            break;
+          default:
+            x = width - 30 - (pageText.length * fontSize) / 2;
+            y = 30;
+        }
+
+        // Dibujar el número de página
+        page.drawText(pageText, {
+          x,
+          y,
+          size: fontSize,
+          opacity: 0.7
+        });
+      });
+
+      // Guardar y retornar el PDF
+      return await pdfDoc.save();
+    } finally {
+      // Limpiar ArrayBuffers después de la operación
+      this.cleanupArrayBuffers(arrayBuffers);
+    }
+  }
+
+  /**
+   * Agrega una marca de agua a un PDF
+   * @param {File|{arrayBuffer: ArrayBuffer}} pdfFile - Archivo PDF
+   * @param {string} watermarkText - Texto de la marca de agua
+   * @param {Object} options - Opciones de la marca de agua
+   * @param {number} options.opacity - Opacidad (0-1) (default: 0.3)
+   * @param {number} options.fontSize - Tamaño de fuente (default: 50)
+   * @param {number} options.rotation - Rotación en grados (default: 45)
+   * @param {string} options.color - Color en formato RGB hex (default: '#000000')
+   * @param {string} options.position - Posición ('center', 'diagonal') (default: 'diagonal')
+   * @returns {Promise<Uint8Array>} - PDF con marca de agua como Uint8Array
+   */
+  async addWatermark(pdfFile, watermarkText, options = {}) {
+    if (!pdfFile) {
+      throw new Error('Se requiere un archivo PDF');
+    }
+
+    if (!watermarkText || watermarkText.trim() === '') {
+      throw new Error('Se requiere texto para la marca de agua');
+    }
+
+    const {
+      opacity = 0.3,
+      fontSize = 50,
+      rotation = 45,
+      color = '#000000',
+      position = 'diagonal'
+    } = options;
+
+    const arrayBuffers = [];
+    
+    try {
+      // Leer el archivo como ArrayBuffer
+      let arrayBuffer;
+      if (pdfFile.arrayBuffer && typeof pdfFile.arrayBuffer === 'function') {
+        arrayBuffer = await pdfFile.arrayBuffer();
+      } else if (pdfFile.arrayBuffer instanceof ArrayBuffer) {
+        arrayBuffer = pdfFile.arrayBuffer;
+      } else {
+        throw new Error('Formato de archivo inválido: debe ser File u objeto con propiedad arrayBuffer');
+      }
+
+      arrayBuffers.push(arrayBuffer);
+
+      // Cargar el PDF
+      const pdfDoc = await PDFLibDocument.load(arrayBuffer);
+      const pages = pdfDoc.getPages();
+
+      // Convertir color hex a RGB
+      const rgb = this._hexToRgb(color);
+
+      // Iterar sobre cada página
+      pages.forEach((page) => {
+        const { width, height } = page.getSize();
+        
+        let x, y, rotate;
+
+        if (position === 'center') {
+          // Centrado sin rotación
+          x = width / 2 - (watermarkText.length * fontSize) / 4;
+          y = height / 2;
+          rotate = 0;
+        } else {
+          // Diagonal (default)
+          x = width / 2 - (watermarkText.length * fontSize) / 4;
+          y = height / 2;
+          rotate = rotation;
+        }
+
+        // Dibujar la marca de agua
+        page.drawText(watermarkText, {
+          x,
+          y,
+          size: fontSize,
+          opacity,
+          rotate: { type: 'degrees', angle: rotate },
+          color: { type: 'RGB', red: rgb.r / 255, green: rgb.g / 255, blue: rgb.b / 255 }
+        });
+      });
+
+      // Guardar y retornar el PDF
+      return await pdfDoc.save();
+    } finally {
+      // Limpiar ArrayBuffers después de la operación
+      this.cleanupArrayBuffers(arrayBuffers);
+    }
+  }
+
+  /**
+   * Detecta si los bytes corresponden a una imagen PNG
+   * @private
+   */
+  _isPNG(bytes) {
+    // PNG signature: 89 50 4E 47 0D 0A 1A 0A
+    return bytes.length >= 8 &&
+           bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47 &&
+           bytes[4] === 0x0D && bytes[5] === 0x0A && bytes[6] === 0x1A && bytes[7] === 0x0A;
+  }
+
+  /**
+   * Detecta si los bytes corresponden a una imagen JPEG
+   * @private
+   */
+  _isJPEG(bytes) {
+    // JPEG signature: FF D8 FF
+    return bytes.length >= 3 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF;
+  }
+
+  /**
+   * Convierte color hexadecimal a RGB
+   * @private
+   */
+  _hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : { r: 0, g: 0, b: 0 };
+  }
 }

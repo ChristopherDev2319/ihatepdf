@@ -22,8 +22,8 @@ describe('FileManager - Unit Tests', () => {
     });
 
     test('throws error when no files provided', async () => {
-      await expect(fileManager.loadFiles(null)).rejects.toThrow('No files provided');
-      await expect(fileManager.loadFiles([])).rejects.toThrow('No files provided');
+      await expect(fileManager.loadFiles(null)).rejects.toThrow('No se proporcionaron archivos');
+      await expect(fileManager.loadFiles([])).rejects.toThrow('No se proporcionaron archivos');
     });
   });
 
@@ -113,12 +113,12 @@ describe('FileManager - Unit Tests', () => {
     });
 
     test('throws error when data is missing', () => {
-      expect(() => fileManager.createBlobURL(null, 'application/pdf')).toThrow('Data and mimeType are required');
+      expect(() => fileManager.createBlobURL(null, 'application/pdf')).toThrow('Se requieren datos y tipo MIME');
     });
 
     test('throws error when mimeType is missing', () => {
       const data = new Uint8Array([1, 2, 3]);
-      expect(() => fileManager.createBlobURL(data, null)).toThrow('Data and mimeType are required');
+      expect(() => fileManager.createBlobURL(data, null)).toThrow('Se requieren datos y tipo MIME');
     });
   });
 
@@ -164,12 +164,12 @@ describe('FileManager - Unit Tests', () => {
     });
 
     test('throws error when blob is missing', () => {
-      expect(() => fileManager.downloadFile(null, 'test.pdf')).toThrow('Blob and filename are required');
+      expect(() => fileManager.downloadFile(null, 'test.pdf')).toThrow('Se requieren blob y nombre de archivo');
     });
 
     test('throws error when filename is missing', () => {
       const blob = new Blob(['test content']);
-      expect(() => fileManager.downloadFile(blob, null)).toThrow('Blob and filename are required');
+      expect(() => fileManager.downloadFile(blob, null)).toThrow('Se requieren blob y nombre de archivo');
     });
   });
 
@@ -230,6 +230,205 @@ describe('FileManager - Unit Tests', () => {
       expect(fileManager.temporaryURLs.size).toBe(2);
       expect(fileManager.temporaryURLs.has('blob:test-url-1')).toBe(true);
       expect(fileManager.temporaryURLs.has('blob:test-url-2')).toBe(true);
+    });
+  });
+
+  describe('generateDefaultFilename', () => {
+    test('generates default filename for combine operation', () => {
+      const filename = fileManager.generateDefaultFilename('combine', 'original.pdf');
+      
+      expect(filename).toContain('original');
+      expect(filename).toContain('combinado');
+      expect(filename).toMatch(/\.pdf$/);
+      expect(filename).toMatch(/\d{8}T\d{6}/); // timestamp pattern
+    });
+
+    test('generates default filename for split operation', () => {
+      const filename = fileManager.generateDefaultFilename('split', 'document.pdf');
+      
+      expect(filename).toContain('document');
+      expect(filename).toContain('dividido');
+      expect(filename).toMatch(/\.pdf$/);
+    });
+
+    test('generates default filename for compress operation', () => {
+      const filename = fileManager.generateDefaultFilename('compress', 'large.pdf');
+      
+      expect(filename).toContain('large');
+      expect(filename).toContain('comprimido');
+      expect(filename).toMatch(/\.pdf$/);
+    });
+
+    test('generates default filename for rotate operation', () => {
+      const filename = fileManager.generateDefaultFilename('rotate', 'sideways.pdf');
+      
+      expect(filename).toContain('sideways');
+      expect(filename).toContain('rotado');
+      expect(filename).toMatch(/\.pdf$/);
+    });
+
+    test('generates default filename for convert operation', () => {
+      const filename = fileManager.generateDefaultFilename('convert', 'image.jpg');
+      
+      expect(filename).toContain('image');
+      expect(filename).toContain('convertido');
+      expect(filename).toMatch(/\.pdf$/);
+    });
+
+    test('uses "documento" as base name when no original filename provided', () => {
+      const filename = fileManager.generateDefaultFilename('combine');
+      
+      expect(filename).toContain('documento');
+      expect(filename).toContain('combinado');
+      expect(filename).toMatch(/\.pdf$/);
+    });
+
+    test('removes extension from original filename', () => {
+      const filename = fileManager.generateDefaultFilename('compress', 'test.pdf');
+      
+      expect(filename).toContain('test');
+      expect(filename).not.toContain('test.pdf');
+      expect(filename).toMatch(/\.pdf$/);
+    });
+
+    test('handles unknown operation types', () => {
+      const filename = fileManager.generateDefaultFilename('unknown', 'test.pdf');
+      
+      expect(filename).toContain('test');
+      expect(filename).toContain('procesado');
+      expect(filename).toMatch(/\.pdf$/);
+    });
+
+    test('throws error when operation is not provided', () => {
+      expect(() => fileManager.generateDefaultFilename(null)).toThrow('Se requiere especificar la operación');
+      expect(() => fileManager.generateDefaultFilename('')).toThrow('Se requiere especificar la operación');
+    });
+  });
+
+  describe('supportsFileSystemAccess', () => {
+    test('detects File System Access API support', () => {
+      // Mock the API as not available (default in test environment)
+      const supports = fileManager.supportsFileSystemAccess();
+      expect(typeof supports).toBe('boolean');
+      expect(supports).toBe(false); // Should be false in test environment
+    });
+
+    test('detects File System Access API when available', () => {
+      // Mock the API as available
+      global.window.showSaveFilePicker = vi.fn();
+      
+      const supports = fileManager.supportsFileSystemAccess();
+      expect(supports).toBe(true);
+      
+      // Cleanup
+      delete global.window.showSaveFilePicker;
+    });
+  });
+
+  describe('downloadFileWithCustomLocation', () => {
+    beforeEach(() => {
+      // Mock URL methods for jsdom
+      global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+      global.URL.revokeObjectURL = vi.fn();
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    test('falls back to normal download when File System Access API not supported', async () => {
+      const blob = new Blob(['test content'], { type: 'application/pdf' });
+      const filename = 'test.pdf';
+      
+      // Mock normal download method
+      const downloadSpy = vi.spyOn(fileManager, 'downloadFile').mockImplementation(() => {});
+      
+      await fileManager.downloadFileWithCustomLocation(blob, filename);
+      
+      expect(downloadSpy).toHaveBeenCalledWith(blob, filename);
+    });
+
+    test('uses File System Access API when supported', async () => {
+      const blob = new Blob(['test content'], { type: 'application/pdf' });
+      const filename = 'test.pdf';
+      
+      // Mock File System Access API
+      const mockWritable = {
+        write: vi.fn(),
+        close: vi.fn()
+      };
+      const mockFileHandle = {
+        createWritable: vi.fn().mockResolvedValue(mockWritable)
+      };
+      global.window.showSaveFilePicker = vi.fn().mockResolvedValue(mockFileHandle);
+      
+      await fileManager.downloadFileWithCustomLocation(blob, filename);
+      
+      expect(global.window.showSaveFilePicker).toHaveBeenCalledWith({
+        suggestedName: filename,
+        types: [
+          {
+            description: 'Archivos PDF',
+            accept: {
+              'application/pdf': ['.pdf'],
+            },
+          },
+        ],
+      });
+      expect(mockFileHandle.createWritable).toHaveBeenCalled();
+      expect(mockWritable.write).toHaveBeenCalledWith(blob);
+      expect(mockWritable.close).toHaveBeenCalled();
+      
+      // Cleanup
+      delete global.window.showSaveFilePicker;
+    });
+
+    test('falls back to normal download when user cancels File System Access dialog', async () => {
+      const blob = new Blob(['test content'], { type: 'application/pdf' });
+      const filename = 'test.pdf';
+      
+      // Mock File System Access API with user cancellation
+      const abortError = new Error('User cancelled');
+      abortError.name = 'AbortError';
+      global.window.showSaveFilePicker = vi.fn().mockRejectedValue(abortError);
+      
+      // Should not call downloadFile when user cancels
+      const downloadSpy = vi.spyOn(fileManager, 'downloadFile').mockImplementation(() => {});
+      
+      await fileManager.downloadFileWithCustomLocation(blob, filename);
+      
+      expect(downloadSpy).not.toHaveBeenCalled();
+      
+      // Cleanup
+      delete global.window.showSaveFilePicker;
+    });
+
+    test('falls back to normal download when File System Access API fails', async () => {
+      const blob = new Blob(['test content'], { type: 'application/pdf' });
+      const filename = 'test.pdf';
+      
+      // Mock File System Access API with error
+      global.window.showSaveFilePicker = vi.fn().mockRejectedValue(new Error('API Error'));
+      
+      const downloadSpy = vi.spyOn(fileManager, 'downloadFile').mockImplementation(() => {});
+      
+      await fileManager.downloadFileWithCustomLocation(blob, filename);
+      
+      expect(downloadSpy).toHaveBeenCalledWith(blob, filename);
+      
+      // Cleanup
+      delete global.window.showSaveFilePicker;
+    });
+
+    test('throws error when blob is missing', async () => {
+      await expect(fileManager.downloadFileWithCustomLocation(null, 'test.pdf'))
+        .rejects.toThrow('Se requieren blob y nombre de archivo');
+    });
+
+    test('throws error when filename is missing', async () => {
+      const blob = new Blob(['test content']);
+      await expect(fileManager.downloadFileWithCustomLocation(blob, null))
+        .rejects.toThrow('Se requieren blob y nombre de archivo');
     });
   });
 });

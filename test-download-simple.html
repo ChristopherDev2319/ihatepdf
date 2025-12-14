@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Simple - Descarga Personalizada</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .checkbox-container {
+            margin: 20px 0;
+        }
+        .checkbox-container label {
+            display: flex;
+            align-items: center;
+            font-size: 16px;
+        }
+        .checkbox-container input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test de Descarga Personalizada</h1>
+        
+        <div class="checkbox-container">
+            <label>
+                <input type="checkbox" id="useCustomLocation">
+                Elegir ubicación personalizada
+            </label>
+        </div>
+        
+        <button onclick="testDownload()">Descargar Archivo de Prueba</button>
+        <button onclick="checkSupport()">Verificar Soporte API</button>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+        }
+
+        function checkSupport() {
+            const hasAPI = 'showSaveFilePicker' in window;
+            const isSecure = window.isSecureContext;
+            
+            if (hasAPI && isSecure) {
+                showStatus('✅ File System Access API está disponible', 'success');
+            } else {
+                showStatus(`❌ File System Access API no disponible. API: ${hasAPI}, Contexto seguro: ${isSecure}`, 'error');
+            }
+        }
+
+        async function testDownload() {
+            const useCustomLocation = document.getElementById('useCustomLocation').checked;
+            
+            // Crear un archivo de prueba
+            const content = `Archivo de prueba generado el ${new Date().toLocaleString()}`;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const filename = 'archivo_prueba.txt';
+            
+            try {
+                if (useCustomLocation) {
+                    showStatus('⏳ Abriendo diálogo para elegir ubicación...', 'info');
+                    
+                    // Verificar soporte
+                    if (!('showSaveFilePicker' in window)) {
+                        throw new Error('File System Access API no está disponible');
+                    }
+                    
+                    // Usar File System Access API
+                    const fileHandle = await window.showSaveFilePicker({
+                        suggestedName: filename,
+                        types: [
+                            {
+                                description: 'Archivos de texto',
+                                accept: {
+                                    'text/plain': ['.txt'],
+                                },
+                            },
+                        ],
+                    });
+
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                    
+                    showStatus('✅ Archivo guardado en ubicación personalizada', 'success');
+                } else {
+                    showStatus('⏳ Descargando a carpeta por defecto...', 'info');
+                    
+                    // Descarga normal
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    setTimeout(() => {
+                        URL.revokeObjectURL(url);
+                    }, 100);
+                    
+                    showStatus('✅ Archivo descargado a carpeta por defecto', 'success');
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    showStatus('ℹ️ Descarga cancelada por el usuario', 'info');
+                } else {
+                    showStatus(`❌ Error: ${error.message}`, 'error');
+                    console.error('Error en descarga:', error);
+                }
+            }
+        }
+
+        // Verificar soporte al cargar la página
+        window.addEventListener('load', checkSupport);
+    </script>
+</body>
+</html>

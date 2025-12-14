@@ -18,7 +18,9 @@ describe('PDFCompressController - Unit Tests', () => {
 
     mockFileManager = {
       validatePDFFile: vi.fn(),
-      downloadFile: vi.fn()
+      downloadFile: vi.fn(),
+      generateDefaultFilename: vi.fn(),
+      downloadFileWithCustomLocation: vi.fn()
     };
 
     mockUIManager = {
@@ -29,7 +31,11 @@ describe('PDFCompressController - Unit Tests', () => {
       updateFileList: vi.fn(),
       clearFileList: vi.fn(),
       enableControls: vi.fn(),
-      disableControls: vi.fn()
+      disableControls: vi.fn(),
+      showDownloadOptions: vi.fn(),
+      hideDownloadOptions: vi.fn(),
+      getCustomFilename: vi.fn(),
+      isCustomLocationSelected: vi.fn()
     };
 
     controller = new PDFCompressController(mockPDFOperations, mockFileManager, mockUIManager);
@@ -110,7 +116,7 @@ describe('PDFCompressController - Unit Tests', () => {
       expect(mockPDFOperations.compressPDF).not.toHaveBeenCalled();
     });
 
-    test('compresses PDF successfully and calculates reduction percentage', async () => {
+    test('compresses PDF successfully and shows download options', async () => {
       const mockFile = new File(['%PDF-1.4'], 'test.pdf', { type: 'application/pdf' });
       controller.selectedFile = mockFile;
       controller.originalSize = 1000;
@@ -121,14 +127,21 @@ describe('PDFCompressController - Unit Tests', () => {
         compressedSize: 800,
         reductionPercentage: 20.0
       };
+      const mockDefaultFilename = 'test_comprimido_20231213T120000.pdf';
+      
       mockPDFOperations.compressPDF.mockResolvedValue(mockResult);
+      mockFileManager.generateDefaultFilename.mockReturnValue(mockDefaultFilename);
 
       await controller.handleCompress();
 
       expect(mockUIManager.disableControls).toHaveBeenCalled();
       expect(mockUIManager.showProgress).toHaveBeenCalledWith('Comprimiendo PDF...');
       expect(mockPDFOperations.compressPDF).toHaveBeenCalledWith(mockFile);
-      expect(mockFileManager.downloadFile).toHaveBeenCalled();
+      expect(mockFileManager.generateDefaultFilename).toHaveBeenCalledWith('compress', 'test.pdf');
+      expect(mockUIManager.showDownloadOptions).toHaveBeenCalledWith(
+        expect.any(Blob),
+        mockDefaultFilename
+      );
       expect(mockUIManager.hideProgress).toHaveBeenCalled();
       expect(mockUIManager.showSuccess).toHaveBeenCalledWith(
         expect.stringContaining('20.00%')
@@ -182,7 +195,7 @@ describe('PDFCompressController - Unit Tests', () => {
       expect(mockUIManager.enableControls).toHaveBeenCalled();
     });
 
-    test('generates correct compressed filename', async () => {
+    test('generates correct default filename using FileManager', async () => {
       const mockFile = new File(['%PDF-1.4'], 'document.pdf', { type: 'application/pdf' });
       controller.selectedFile = mockFile;
 
@@ -192,13 +205,17 @@ describe('PDFCompressController - Unit Tests', () => {
         compressedSize: 800,
         reductionPercentage: 20.0
       };
+      const mockDefaultFilename = 'document_comprimido_20231213T120000.pdf';
+      
       mockPDFOperations.compressPDF.mockResolvedValue(mockResult);
+      mockFileManager.generateDefaultFilename.mockReturnValue(mockDefaultFilename);
 
       await controller.handleCompress();
 
-      expect(mockFileManager.downloadFile).toHaveBeenCalledWith(
+      expect(mockFileManager.generateDefaultFilename).toHaveBeenCalledWith('compress', 'document.pdf');
+      expect(mockUIManager.showDownloadOptions).toHaveBeenCalledWith(
         expect.any(Blob),
-        'document_compressed.pdf'
+        mockDefaultFilename
       );
     });
   });
@@ -214,7 +231,10 @@ describe('PDFCompressController - Unit Tests', () => {
         compressedSize: 4000,
         reductionPercentage: 20.0
       };
+      const mockDefaultFilename = 'doc_comprimido_20231213T120000.pdf';
+      
       mockPDFOperations.compressPDF.mockResolvedValue(mockResult);
+      mockFileManager.generateDefaultFilename.mockReturnValue(mockDefaultFilename);
 
       await controller.handleCompress();
 
@@ -222,7 +242,8 @@ describe('PDFCompressController - Unit Tests', () => {
       expect(mockUIManager.disableControls).toHaveBeenCalled();
       expect(mockUIManager.showProgress).toHaveBeenCalled();
       expect(mockPDFOperations.compressPDF).toHaveBeenCalled();
-      expect(mockFileManager.downloadFile).toHaveBeenCalled();
+      expect(mockFileManager.generateDefaultFilename).toHaveBeenCalled();
+      expect(mockUIManager.showDownloadOptions).toHaveBeenCalled();
       expect(mockUIManager.hideProgress).toHaveBeenCalled();
       expect(mockUIManager.showSuccess).toHaveBeenCalled();
       expect(mockUIManager.enableControls).toHaveBeenCalled();
@@ -239,6 +260,7 @@ describe('PDFCompressController - Unit Tests', () => {
         reductionPercentage: 10.0
       };
       mockPDFOperations.compressPDF.mockResolvedValue(mockResult);
+      mockFileManager.generateDefaultFilename.mockReturnValue('test_comprimido.pdf');
 
       await controller.handleCompress();
 

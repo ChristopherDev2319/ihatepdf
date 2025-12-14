@@ -1,3 +1,5 @@
+import { DownloadOptions } from './components/DownloadOptions.js';
+
 /**
  * UIManager - Gestiona la actualización de la interfaz de usuario
  * 
@@ -6,7 +8,7 @@
  * lista de archivos y estado de controles.
  */
 export class UIManager {
-  constructor() {
+  constructor(fileManager) {
     // Elementos del DOM
     this.progressIndicator = document.getElementById('progressIndicator');
     this.progressMessage = document.getElementById('progressMessage');
@@ -17,6 +19,7 @@ export class UIManager {
     this.operationButtons = document.querySelectorAll('.operation-btn');
     this.fileInput = document.getElementById('fileInput');
     this.dropzone = document.getElementById('dropzone');
+    this.downloadSection = document.getElementById('downloadSection');
     
     // Controles específicos de operaciones
     this.splitControls = document.getElementById('splitControls');
@@ -24,6 +27,13 @@ export class UIManager {
     this.pageRanges = document.getElementById('pageRanges');
     this.pageSelection = document.getElementById('pageSelection');
     this.rotationAngle = document.getElementById('rotationAngle');
+    
+    // Componente de opciones de descarga
+    this.downloadOptions = null;
+    if (fileManager && this.downloadSection) {
+      this.downloadOptions = new DownloadOptions(fileManager);
+      this.downloadSection.appendChild(this.downloadOptions.getElement());
+    }
     
     // Estado
     this.notificationTimeout = null;
@@ -266,6 +276,51 @@ export class UIManager {
   }
 
   /**
+   * Muestra las opciones de descarga
+   * @param {Blob} blob - Blob del archivo a descargar
+   * @param {string} defaultFilename - Nombre por defecto del archivo
+   */
+  showDownloadOptions(blob, defaultFilename) {
+    if (!this.downloadOptions) {
+      console.error('DownloadOptions component not initialized');
+      return;
+    }
+    
+    this.downloadOptions.show(blob, defaultFilename);
+  }
+
+  /**
+   * Oculta las opciones de descarga
+   */
+  hideDownloadOptions() {
+    if (!this.downloadOptions) {
+      return;
+    }
+    
+    this.downloadOptions.hide();
+  }
+
+  /**
+   * Obtiene el nombre personalizado del archivo
+   * @returns {string} - Nombre personalizado o nombre por defecto
+   */
+  getCustomFilename() {
+    if (!this.downloadOptions) {
+      return '';
+    }
+    
+    return this.downloadOptions.getCustomFilename();
+  }
+
+  /**
+   * Siempre usa ubicación personalizada (con fallback automático)
+   * @returns {boolean} - siempre true para intentar ubicación personalizada
+   */
+  isCustomLocationSelected() {
+    return true;
+  }
+
+  /**
    * Escapa caracteres HTML para prevenir XSS
    * @private
    * @param {string} text - Texto a escapar
@@ -275,5 +330,20 @@ export class UIManager {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  /**
+   * Destruye el UIManager y limpia recursos
+   */
+  destroy() {
+    if (this.downloadOptions) {
+      this.downloadOptions.destroy();
+      this.downloadOptions = null;
+    }
+    
+    if (this.notificationTimeout) {
+      clearTimeout(this.notificationTimeout);
+      this.notificationTimeout = null;
+    }
   }
 }
