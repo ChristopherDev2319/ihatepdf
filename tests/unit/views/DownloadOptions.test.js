@@ -25,7 +25,10 @@ describe('DownloadOptions - Unit Tests', () => {
     // Mock del FileManager
     mockFileManager = {
       downloadFile: vi.fn(),
-      downloadFileWithCustomLocation: vi.fn().mockResolvedValue(undefined)
+      downloadFileWithCustomLocation: vi.fn().mockResolvedValue(undefined),
+      supportsFileSystemAccess: vi.fn().mockReturnValue(true),
+      isMobileDevice: vi.fn().mockReturnValue(false),
+      getFileSystemAccessUnavailableReason: vi.fn().mockReturnValue('Test reason')
     };
     
     downloadOptions = new DownloadOptions(mockFileManager);
@@ -48,21 +51,29 @@ describe('DownloadOptions - Unit Tests', () => {
       expect(element.getAttribute('aria-label')).toBe('Opciones de descarga');
     });
 
-    test('should have all required form elements', () => {
+    test('should create dynamic structure based on browser support', () => {
       const element = downloadOptions.getElement();
       
+      // Initially, only the content container should exist
+      const contentDiv = element.querySelector('.download-options__content');
+      expect(contentDiv).toBeTruthy();
+      
+      // Form elements are created dynamically in show() method
       const filenameInput = element.querySelector('#customFilename');
       const downloadButton = element.querySelector('#downloadFileBtn');
-      const cancelButton = element.querySelector('#cancelDownloadBtn');
       
-      expect(filenameInput).toBeTruthy();
-      expect(downloadButton).toBeTruthy();
-      expect(cancelButton).toBeTruthy();
+      expect(filenameInput).toBeNull(); // Not created until show() is called
+      expect(downloadButton).toBeNull(); // Not created until show() is called
     });
   });
 
   describe('Show/Hide Functionality', () => {
-    test('should show download options with correct default filename', () => {
+    test('should show download options with correct default filename for non-compatible browsers', () => {
+      // Mock FileManager to simulate non-compatible browser
+      mockFileManager.supportsFileSystemAccess.mockReturnValue(false);
+      mockFileManager.isMobileDevice.mockReturnValue(false);
+      mockFileManager.getFileSystemAccessUnavailableReason.mockReturnValue('Test reason');
+      
       const mockBlob = new Blob(['test'], { type: 'application/pdf' });
       const defaultFilename = 'test_document.pdf';
       
@@ -72,11 +83,35 @@ describe('DownloadOptions - Unit Tests', () => {
       const filenameInput = element.querySelector('#customFilename');
       
       expect(element.hidden).toBe(false);
+      expect(filenameInput).toBeTruthy(); // Should exist for non-compatible browsers
       expect(filenameInput.placeholder).toBe(defaultFilename);
       expect(filenameInput.value).toBe('');
     });
 
+    test('should show download options for compatible browsers without filename input', () => {
+      // Mock FileManager to simulate compatible browser
+      mockFileManager.supportsFileSystemAccess.mockReturnValue(true);
+      
+      const mockBlob = new Blob(['test'], { type: 'application/pdf' });
+      const defaultFilename = 'test_document.pdf';
+      
+      downloadOptions.show(mockBlob, defaultFilename);
+      
+      const element = downloadOptions.getElement();
+      const filenameInput = element.querySelector('#customFilename');
+      const downloadButton = element.querySelector('#downloadFileBtn');
+      
+      expect(element.hidden).toBe(false);
+      expect(filenameInput).toBeNull(); // Should not exist for compatible browsers
+      expect(downloadButton).toBeTruthy(); // Should have download button
+      expect(downloadButton.textContent.trim()).toBe('Elegir ubicación y guardar');
+    });
+
     test('should hide download options and clear data', () => {
+      // Mock FileManager to simulate non-compatible browser for this test
+      mockFileManager.supportsFileSystemAccess.mockReturnValue(false);
+      mockFileManager.getFileSystemAccessUnavailableReason.mockReturnValue('Test reason');
+      
       const mockBlob = new Blob(['test'], { type: 'application/pdf' });
       
       downloadOptions.show(mockBlob, 'test.pdf');
@@ -100,14 +135,26 @@ describe('DownloadOptions - Unit Tests', () => {
     });
 
     test('should clear filename input when showing', () => {
+      // Mock FileManager to simulate non-compatible browser
+      mockFileManager.supportsFileSystemAccess.mockReturnValue(false);
+      mockFileManager.getFileSystemAccessUnavailableReason.mockReturnValue('Test reason');
+      
       const mockBlob = new Blob(['test'], { type: 'application/pdf' });
+      
+      // First show to create the elements
+      downloadOptions.show(mockBlob, 'test.pdf');
+      
       const element = downloadOptions.getElement();
-      const filenameInput = element.querySelector('#customFilename');
+      let filenameInput = element.querySelector('#customFilename');
       
       // Set some value first
       filenameInput.value = 'previous_value.pdf';
       
+      // Show again to test clearing
       downloadOptions.show(mockBlob, 'test.pdf');
+      
+      // Get the input again since the structure was recreated
+      filenameInput = element.querySelector('#customFilename');
       
       expect(filenameInput.value).toBe('');
       expect(filenameInput.placeholder).toBe('test.pdf');
@@ -124,34 +171,62 @@ describe('DownloadOptions - Unit Tests', () => {
       expect(downloadOptions.getCustomFilename()).toBe(defaultFilename);
     });
 
-    test('should return custom filename when provided', () => {
+    test('should return default filename for compatible browsers (no input field)', () => {
+      // Mock FileManager to simulate compatible browser
+      mockFileManager.supportsFileSystemAccess.mockReturnValue(true);
+      
       const mockBlob = new Blob(['test'], { type: 'application/pdf' });
-      const element = downloadOptions.getElement();
-      const filenameInput = element.querySelector('#customFilename');
+      const defaultFilename = 'default_document.pdf';
+      
+      downloadOptions.show(mockBlob, defaultFilename);
+      
+      // Should return default filename since there's no input field
+      expect(downloadOptions.getCustomFilename()).toBe(defaultFilename);
+    });
+
+    test('should return custom filename when provided', () => {
+      // Mock FileManager to simulate non-compatible browser
+      mockFileManager.supportsFileSystemAccess.mockReturnValue(false);
+      mockFileManager.getFileSystemAccessUnavailableReason.mockReturnValue('Test reason');
+      
+      const mockBlob = new Blob(['test'], { type: 'application/pdf' });
       
       downloadOptions.show(mockBlob, 'default.pdf');
+      
+      const element = downloadOptions.getElement();
+      const filenameInput = element.querySelector('#customFilename');
       filenameInput.value = 'custom_name.pdf';
       
       expect(downloadOptions.getCustomFilename()).toBe('custom_name.pdf');
     });
 
     test('should add .pdf extension if missing', () => {
+      // Mock FileManager to simulate non-compatible browser
+      mockFileManager.supportsFileSystemAccess.mockReturnValue(false);
+      mockFileManager.getFileSystemAccessUnavailableReason.mockReturnValue('Test reason');
+      
       const mockBlob = new Blob(['test'], { type: 'application/pdf' });
-      const element = downloadOptions.getElement();
-      const filenameInput = element.querySelector('#customFilename');
       
       downloadOptions.show(mockBlob, 'default.pdf');
+      
+      const element = downloadOptions.getElement();
+      const filenameInput = element.querySelector('#customFilename');
       filenameInput.value = 'custom_name';
       
       expect(downloadOptions.getCustomFilename()).toBe('custom_name.pdf');
     });
 
     test('should handle whitespace in custom filename', () => {
+      // Mock FileManager to simulate non-compatible browser
+      mockFileManager.supportsFileSystemAccess.mockReturnValue(false);
+      mockFileManager.getFileSystemAccessUnavailableReason.mockReturnValue('Test reason');
+      
       const mockBlob = new Blob(['test'], { type: 'application/pdf' });
-      const element = downloadOptions.getElement();
-      const filenameInput = element.querySelector('#customFilename');
       
       downloadOptions.show(mockBlob, 'default.pdf');
+      
+      const element = downloadOptions.getElement();
+      const filenameInput = element.querySelector('#customFilename');
       filenameInput.value = '  custom_name.pdf  ';
       
       expect(downloadOptions.getCustomFilename()).toBe('custom_name.pdf');
@@ -186,11 +261,16 @@ describe('DownloadOptions - Unit Tests', () => {
     });
 
     test('should use custom filename in download', async () => {
+      // Mock FileManager to simulate non-compatible browser
+      mockFileManager.supportsFileSystemAccess.mockReturnValue(false);
+      mockFileManager.getFileSystemAccessUnavailableReason.mockReturnValue('Test reason');
+      
       const mockBlob = new Blob(['test'], { type: 'application/pdf' });
-      const element = downloadOptions.getElement();
-      const filenameInput = element.querySelector('#customFilename');
       
       downloadOptions.show(mockBlob, 'default.pdf');
+      
+      const element = downloadOptions.getElement();
+      const filenameInput = element.querySelector('#customFilename');
       filenameInput.value = 'custom.pdf';
       
       await downloadOptions.handleDownload();
@@ -229,11 +309,16 @@ describe('DownloadOptions - Unit Tests', () => {
 
   describe('Cancel Functionality', () => {
     test('should hide options when cancel button clicked', () => {
+      // Mock FileManager to simulate non-compatible browser
+      mockFileManager.supportsFileSystemAccess.mockReturnValue(false);
+      mockFileManager.getFileSystemAccessUnavailableReason.mockReturnValue('Test reason');
+      
       const mockBlob = new Blob(['test'], { type: 'application/pdf' });
-      const element = downloadOptions.getElement();
-      const cancelButton = element.querySelector('#cancelDownloadBtn');
       
       downloadOptions.show(mockBlob, 'test.pdf');
+      
+      const element = downloadOptions.getElement();
+      const cancelButton = element.querySelector('#cancelDownloadBtn');
       
       // Simular click en cancelar
       cancelButton.click();
@@ -244,6 +329,13 @@ describe('DownloadOptions - Unit Tests', () => {
 
   describe('Filename Validation', () => {
     test('should validate filename with invalid characters', () => {
+      // Mock FileManager to simulate non-compatible browser
+      mockFileManager.supportsFileSystemAccess.mockReturnValue(false);
+      mockFileManager.getFileSystemAccessUnavailableReason.mockReturnValue('Test reason');
+      
+      const mockBlob = new Blob(['test'], { type: 'application/pdf' });
+      downloadOptions.show(mockBlob, 'test.pdf');
+      
       const element = downloadOptions.getElement();
       const filenameInput = element.querySelector('#customFilename');
       
@@ -256,6 +348,13 @@ describe('DownloadOptions - Unit Tests', () => {
     });
 
     test('should clear validation for valid filename', () => {
+      // Mock FileManager to simulate non-compatible browser
+      mockFileManager.supportsFileSystemAccess.mockReturnValue(false);
+      mockFileManager.getFileSystemAccessUnavailableReason.mockReturnValue('Test reason');
+      
+      const mockBlob = new Blob(['test'], { type: 'application/pdf' });
+      downloadOptions.show(mockBlob, 'test.pdf');
+      
       const element = downloadOptions.getElement();
       const filenameInput = element.querySelector('#customFilename');
       
@@ -264,6 +363,35 @@ describe('DownloadOptions - Unit Tests', () => {
       downloadOptions.validateFilename();
       
       expect(filenameInput.validity.customError).toBe(false);
+    });
+  });
+
+  describe('Contextual Information', () => {
+    test('should show info when File System Access API not supported', () => {
+      // Mock FileManager to return false for API support
+      mockFileManager.supportsFileSystemAccess = vi.fn().mockReturnValue(false);
+      mockFileManager.getFileSystemAccessUnavailableReason = vi.fn().mockReturnValue('Test reason');
+      
+      const testBlob = new Blob(['test'], { type: 'application/pdf' });
+      downloadOptions.show(testBlob, 'test.pdf');
+      
+      const infoDiv = downloadOptions.container.querySelector('#downloadInfo');
+      const infoText = downloadOptions.container.querySelector('#downloadInfoText');
+      
+      expect(infoDiv.hidden).toBe(false);
+      expect(infoText.textContent).toBe('Test reason');
+    });
+
+    test('should hide info when File System Access API is supported', () => {
+      // Mock FileManager to return true for API support
+      mockFileManager.supportsFileSystemAccess.mockReturnValue(true);
+      
+      const testBlob = new Blob(['test'], { type: 'application/pdf' });
+      downloadOptions.show(testBlob, 'test.pdf');
+      
+      const infoDiv = downloadOptions.container.querySelector('#downloadInfo');
+      
+      expect(infoDiv).toBeNull(); // Info div should not exist for compatible browsers
     });
   });
 

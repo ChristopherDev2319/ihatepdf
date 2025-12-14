@@ -325,6 +325,142 @@ describe('FileManager - Unit Tests', () => {
     });
   });
 
+  describe('Device and Browser Detection', () => {
+    test('detects mobile devices correctly', () => {
+      // Mock mobile user agent
+      Object.defineProperty(navigator, 'userAgent', {
+        value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)',
+        configurable: true
+      });
+      
+      const isMobile = fileManager.isMobileDevice();
+      expect(isMobile).toBe(true);
+    });
+
+    test('detects desktop devices correctly', () => {
+      // Mock desktop user agent
+      Object.defineProperty(navigator, 'userAgent', {
+        value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        configurable: true
+      });
+      
+      // Mock large screen
+      Object.defineProperty(window, 'innerWidth', {
+        value: 1920,
+        configurable: true
+      });
+      
+      const isMobile = fileManager.isMobileDevice();
+      expect(isMobile).toBe(false);
+    });
+
+    test('gets browser information correctly', () => {
+      // Mock Chrome user agent
+      Object.defineProperty(navigator, 'userAgent', {
+        value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        configurable: true
+      });
+      Object.defineProperty(navigator, 'vendor', {
+        value: 'Google Inc.',
+        configurable: true
+      });
+      
+      const browserInfo = fileManager.getBrowserInfo();
+      
+      expect(browserInfo.isChrome).toBe(true);
+      expect(browserInfo.isFirefox).toBe(false);
+      expect(browserInfo.isBrave).toBe(false);
+      expect(browserInfo.isChromiumBased).toBe(true);
+      expect(browserInfo.version).toBe(91);
+      expect(browserInfo.chromeVersion).toBe(91);
+    });
+
+    test('detects Brave Browser correctly', () => {
+      // Mock Brave user agent
+      Object.defineProperty(navigator, 'userAgent', {
+        value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        configurable: true
+      });
+      Object.defineProperty(navigator, 'vendor', {
+        value: 'Google Inc.',
+        configurable: true
+      });
+      Object.defineProperty(navigator, 'brave', {
+        value: { isBrave: true },
+        configurable: true
+      });
+      
+      const browserInfo = fileManager.getBrowserInfo();
+      
+      expect(browserInfo.isBrave).toBe(true);
+      expect(browserInfo.isChrome).toBe(false); // Should be false when Brave is detected
+      expect(browserInfo.isChromiumBased).toBe(true);
+      expect(browserInfo.version).toBe(91);
+      expect(browserInfo.chromeVersion).toBe(91);
+    });
+
+    test('detects Edge Browser correctly', () => {
+      // Mock Edge user agent
+      Object.defineProperty(navigator, 'userAgent', {
+        value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59',
+        configurable: true
+      });
+      Object.defineProperty(navigator, 'vendor', {
+        value: 'Google Inc.',
+        configurable: true
+      });
+      
+      const browserInfo = fileManager.getBrowserInfo();
+      
+      expect(browserInfo.isEdge).toBe(true);
+      expect(browserInfo.isChrome).toBe(false);
+      expect(browserInfo.isChromiumBased).toBe(true);
+      expect(browserInfo.version).toBe(91);
+      expect(browserInfo.chromeVersion).toBe(91);
+    });
+
+    test('provides appropriate unavailable reason for Firefox', () => {
+      // Mock Firefox and secure context
+      Object.defineProperty(navigator, 'userAgent', {
+        value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0',
+        configurable: true
+      });
+      Object.defineProperty(window, 'isSecureContext', {
+        value: true,
+        configurable: true
+      });
+      
+      const reason = fileManager.getFileSystemAccessUnavailableReason();
+      expect(reason).toContain('Firefox no soporta');
+    });
+
+    test('provides appropriate unavailable reason for mobile', () => {
+      // Mock mobile device and secure context
+      Object.defineProperty(navigator, 'userAgent', {
+        value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)',
+        configurable: true
+      });
+      Object.defineProperty(window, 'isSecureContext', {
+        value: true,
+        configurable: true
+      });
+      
+      const reason = fileManager.getFileSystemAccessUnavailableReason();
+      expect(reason).toContain('dispositivos móviles');
+    });
+
+    test('provides appropriate unavailable reason for insecure context', () => {
+      // Mock insecure context (HTTP)
+      Object.defineProperty(window, 'isSecureContext', {
+        value: false,
+        configurable: true
+      });
+      
+      const reason = fileManager.getFileSystemAccessUnavailableReason();
+      expect(reason).toContain('HTTPS');
+    });
+  });
+
   describe('downloadFileWithCustomLocation', () => {
     beforeEach(() => {
       // Mock URL methods for jsdom

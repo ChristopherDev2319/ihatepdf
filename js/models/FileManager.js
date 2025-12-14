@@ -200,7 +200,163 @@ export class FileManager {
    * @returns {boolean} - true si soporta la API
    */
   supportsFileSystemAccess() {
-    return 'showSaveFilePicker' in window;
+    // Verificación básica
+    if ('showSaveFilePicker' in window) {
+      return true;
+    }
+    
+    // Detección especial para Brave Browser
+    // Brave puede no reportar la API correctamente pero sí la soporta
+    const userAgent = navigator.userAgent;
+    const isBrave = navigator.brave !== undefined;
+    const isChromiumBased = /Chrome/.test(userAgent);
+    
+    if (isBrave && isChromiumBased) {
+      // Extraer versión de Chrome para Brave
+      const chromeMatch = userAgent.match(/Chrome\/(\d+)/);
+      const chromeVersion = chromeMatch ? parseInt(chromeMatch[1]) : 0;
+      
+      // Brave basado en Chrome 86+ soporta la API
+      return chromeVersion >= 86;
+    }
+    
+    return false;
+  }
+
+  /**
+   * Detecta si el usuario está en un dispositivo móvil
+   * @returns {boolean} - true si está en móvil
+   */
+  isMobileDevice() {
+    // Verificar por user agent (más específico)
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
+    
+    // Si el user agent indica móvil, es móvil
+    if (mobileRegex.test(userAgent)) {
+      return true;
+    }
+    
+    // Para desktop con touch (como laptops con pantalla táctil), ser más conservador
+    const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isSmallScreen = window.innerWidth <= 768;
+    const isVerySmallScreen = window.innerWidth <= 480;
+    
+    // Solo considerar móvil si es pantalla muy pequeña Y tiene touch
+    // O si es pantalla pequeña Y no hay mouse disponible
+    const hasCoarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    
+    return (isVerySmallScreen && hasTouchScreen) || (isSmallScreen && hasCoarsePointer);
+  }
+
+  /**
+   * Detecta el tipo de navegador
+   * @returns {Object} - Información del navegador
+   */
+  getBrowserInfo() {
+    const userAgent = navigator.userAgent;
+    const vendor = navigator.vendor || '';
+    
+    // Detectar navegadores específicos (orden importante)
+    const isBrave = /Brave/.test(userAgent) || navigator.brave !== undefined;
+    const isEdge = /Edg/.test(userAgent);
+    const isOpera = /OPR/.test(userAgent) || /Opera/.test(userAgent);
+    const isVivaldi = /Vivaldi/.test(userAgent);
+    const isYandex = /YaBrowser/.test(userAgent);
+    const isChrome = /Chrome/.test(userAgent) && !isEdge && !isOpera && !isBrave && !isVivaldi && !isYandex;
+    const isFirefox = /Firefox/.test(userAgent);
+    const isSafari = /Safari/.test(userAgent) && /Apple Computer/.test(vendor) && !isChrome && !isEdge;
+    
+    // Detectar si es basado en Chromium (incluye Chrome, Brave, Edge, Opera, Vivaldi, Yandex)
+    const isChromiumBased = /Chrome/.test(userAgent) || isEdge || isBrave || isVivaldi || isYandex;
+    
+    // Detectar versiones
+    let version = 'unknown';
+    let chromeVersion = 'unknown';
+    
+    if (isChromiumBased) {
+      const chromeMatch = userAgent.match(/Chrome\/(\d+)/);
+      chromeVersion = chromeMatch ? parseInt(chromeMatch[1]) : 'unknown';
+      version = chromeVersion;
+    }
+    
+    if (isEdge) {
+      const edgeMatch = userAgent.match(/Edg\/(\d+)/);
+      version = edgeMatch ? parseInt(edgeMatch[1]) : chromeVersion;
+    } else if (isFirefox) {
+      const firefoxMatch = userAgent.match(/Firefox\/(\d+)/);
+      version = firefoxMatch ? parseInt(firefoxMatch[1]) : 'unknown';
+    } else if (isSafari) {
+      const safariMatch = userAgent.match(/Version\/(\d+)/);
+      version = safariMatch ? parseInt(safariMatch[1]) : 'unknown';
+    } else if (isOpera) {
+      const operaMatch = userAgent.match(/OPR\/(\d+)/);
+      version = operaMatch ? parseInt(operaMatch[1]) : chromeVersion;
+    }
+    
+    return {
+      isChrome,
+      isEdge,
+      isFirefox,
+      isSafari,
+      isOpera,
+      isBrave,
+      isVivaldi,
+      isYandex,
+      isChromiumBased,
+      version,
+      chromeVersion, // Versión del motor Chrome para navegadores basados en Chromium
+      supportsFileSystemAccess: this.supportsFileSystemAccess(),
+      isMobile: this.isMobileDevice(),
+      isSecureContext: window.isSecureContext
+    };
+  }
+
+  /**
+   * Obtiene una explicación de por qué la File System Access API no está disponible
+   * @returns {string} - Razón por la que no está disponible
+   */
+  getFileSystemAccessUnavailableReason() {
+    const browserInfo = this.getBrowserInfo();
+    const supportsAPI = this.supportsFileSystemAccess();
+    
+    // Debug: Si la API está disponible pero aún se llama este método, hay un problema
+    if (supportsAPI) {
+      return `DEBUG: La API está disponible ('showSaveFilePicker' in window = true) pero se está mostrando como no soportada. Navegador: ${browserInfo.isBrave ? 'Brave' : browserInfo.isChrome ? 'Chrome' : 'Otro'}, Móvil: ${browserInfo.isMobile}, Contexto seguro: ${browserInfo.isSecureContext}`;
+    }
+    
+    if (!browserInfo.isSecureContext) {
+      return 'La página debe servirse por HTTPS para usar la selección de ubicación personalizada.';
+    }
+    
+    if (browserInfo.isMobile) {
+      return `Los dispositivos móviles no soportan selección de ubicación personalizada. (Pantalla: ${window.innerWidth}px, Touch: ${'ontouchstart' in window}, MaxTouchPoints: ${navigator.maxTouchPoints})`;
+    }
+    
+    if (browserInfo.isFirefox) {
+      return 'Firefox no soporta selección de ubicación personalizada. El archivo se descargará automáticamente.';
+    }
+    
+    if (browserInfo.isSafari) {
+      return 'Safari no soporta selección de ubicación personalizada. El archivo se descargará automáticamente.';
+    }
+    
+    // Brave Browser - no debería llegar aquí si la detección es correcta
+    if (browserInfo.isBrave && !supportsAPI) {
+      return 'Brave Browser: Funcionalidad de selección de ubicación no disponible en este contexto.';
+    }
+    
+    // Para navegadores basados en Chromium, verificar la versión del motor Chrome
+    if (browserInfo.isChromiumBased && browserInfo.chromeVersion < 86) {
+      const browserName = browserInfo.isBrave ? 'Brave' : 
+                         browserInfo.isEdge ? 'Edge' : 
+                         browserInfo.isOpera ? 'Opera' :
+                         browserInfo.isVivaldi ? 'Vivaldi' :
+                         browserInfo.isYandex ? 'Yandex Browser' : 'Chrome';
+      return `Tu versión de ${browserName} es muy antigua. Necesitas una versión basada en Chrome 86+ para seleccionar ubicación personalizada. (Versión Chrome: ${browserInfo.chromeVersion})`;
+    }
+    
+    return `Tu navegador no soporta selección de ubicación personalizada. El archivo se descargará automáticamente. (showSaveFilePicker disponible: ${supportsAPI})`;
   }
 
   /**

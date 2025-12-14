@@ -28,9 +28,43 @@ export class DownloadOptions {
     this.container.setAttribute('role', 'region');
     this.container.setAttribute('aria-label', 'Opciones de descarga');
 
-    this.container.innerHTML = `
-      <div class="download-options__content">
+    // La estructura se creará dinámicamente en show() según el soporte del navegador
+    this.container.innerHTML = '<div class="download-options__content"></div>';
+  }
+
+  /**
+   * Crea la estructura HTML según el soporte del navegador
+   * @private
+   * @param {boolean} supportsFileSystemAccess - Si el navegador soporta File System Access API
+   */
+  _createDynamicStructure(supportsFileSystemAccess) {
+    const content = this.container.querySelector('.download-options__content');
+    if (!content) return;
+
+    if (supportsFileSystemAccess) {
+      // Navegadores compatibles: Solo título y botón de guardar
+      content.innerHTML = `
         <h3 class="download-options__title">Guardar archivo</h3>
+        
+        <div class="download-options__actions">
+          <button 
+            type="button" 
+            id="downloadFileBtn" 
+            class="btn btn--primary">
+            Elegir ubicación y guardar
+          </button>
+          <button 
+            type="button" 
+            id="cancelDownloadBtn" 
+            class="btn btn--secondary">
+            Cancelar
+          </button>
+        </div>
+      `;
+    } else {
+      // Navegadores no compatibles: Campo de nombre + información + botón de descarga
+      content.innerHTML = `
+        <h3 class="download-options__title">Descargar archivo</h3>
         
         <div class="download-options__field">
           <label for="customFilename" class="download-options__label">
@@ -47,13 +81,16 @@ export class DownloadOptions {
           </small>
         </div>
         
+        <div class="download-options__info" id="downloadInfo">
+          <p class="download-options__info-text" id="downloadInfoText"></p>
+        </div>
         
         <div class="download-options__actions">
           <button 
             type="button" 
             id="downloadFileBtn" 
             class="btn btn--primary">
-            Guardar archivo
+            Descargar
           </button>
           <button 
             type="button" 
@@ -62,10 +99,10 @@ export class DownloadOptions {
             Cancelar
           </button>
         </div>
-      </div>
-    `;
+      `;
+    }
 
-    // Obtener referencias a los elementos
+    // Actualizar referencias a los elementos
     this.filenameInput = this.container.querySelector('#customFilename');
     this.downloadButton = this.container.querySelector('#downloadFileBtn');
     this.cancelButton = this.container.querySelector('#cancelDownloadBtn');
@@ -108,21 +145,52 @@ export class DownloadOptions {
     this.currentBlob = blob;
     this.defaultFilename = defaultFilename;
     
-    // Actualizar la interfaz
-    if (this.filenameInput) {
-      this.filenameInput.placeholder = defaultFilename;
-      this.filenameInput.value = ''; // Limpiar valor anterior
+    // Determinar si el navegador soporta File System Access API
+    const supportsAPI = this.fileManager.supportsFileSystemAccess();
+    
+    // Crear estructura dinámica según el soporte
+    this._createDynamicStructure(supportsAPI);
+    
+    // Configurar eventos después de crear la estructura
+    this.bindEvents();
+    
+    // Actualizar la interfaz según el tipo de navegador
+    if (!supportsAPI) {
+      // Solo actualizar campo de nombre si existe (navegadores no compatibles)
+      if (this.filenameInput) {
+        this.filenameInput.placeholder = defaultFilename;
+        this.filenameInput.value = ''; // Limpiar valor anterior
+      }
+      
+      // Mostrar información contextual
+      this._updateContextualInfo();
     }
 
     // Mostrar el componente
     if (this.container) {
       this.container.hidden = false;
       
-      // Enfocar el campo de nombre para mejor UX
-      if (this.filenameInput) {
+      // Enfocar el campo de nombre solo si existe y no es móvil
+      if (this.filenameInput && !this.fileManager.isMobileDevice()) {
         this.filenameInput.focus();
       }
     }
+  }
+
+  /**
+   * Actualiza la información contextual para navegadores no compatibles
+   * @private
+   */
+  _updateContextualInfo() {
+    const infoDiv = this.container.querySelector('#downloadInfo');
+    const infoText = this.container.querySelector('#downloadInfoText');
+    
+    if (!infoDiv || !infoText) return;
+
+    // Mostrar razón por la que no está disponible la selección de ubicación
+    const reason = this.fileManager.getFileSystemAccessUnavailableReason();
+    infoText.textContent = reason;
+    infoDiv.hidden = false;
   }
 
   /**
@@ -143,6 +211,7 @@ export class DownloadOptions {
    * @returns {string} - Nombre personalizado o nombre por defecto
    */
   getCustomFilename() {
+    // Si no hay campo de entrada (navegadores compatibles), usar nombre por defecto
     if (!this.filenameInput) {
       return this.defaultFilename;
     }
