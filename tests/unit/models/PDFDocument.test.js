@@ -27,8 +27,8 @@ describe('PDFDocument', () => {
     });
 
     test('should throw error when ArrayBuffer is not provided', () => {
-      expect(() => new PDFDocument(null)).toThrow('ArrayBuffer is required');
-      expect(() => new PDFDocument(undefined)).toThrow('ArrayBuffer is required');
+      expect(() => new PDFDocument(null)).toThrow('Se requiere ArrayBuffer');
+      expect(() => new PDFDocument(undefined)).toThrow('Se requiere ArrayBuffer');
     });
   });
 
@@ -62,7 +62,7 @@ describe('PDFDocument', () => {
     test('should throw error if PDF not loaded', () => {
       const pdfDoc = new PDFDocument(validPDFBuffer);
       
-      expect(() => pdfDoc.getPageCount()).toThrow('PDF document not loaded. Call load() first.');
+      expect(() => pdfDoc.getPageCount()).toThrow('Documento PDF no cargado. Llama a load() primero.');
     });
   });
 
