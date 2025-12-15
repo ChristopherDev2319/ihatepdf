@@ -1,9 +1,24 @@
 /**
- * app.js - Archivo principal de la aplicación IHATEPDF
+ * app.js - Archivo principal de la aplicación Centro Multimedia
  * 
  * Inicializa todos los componentes MVC, configura event listeners
- * y maneja la navegación entre operaciones.
+ * y maneja la navegación entre operaciones usando el router.
+ * 
+ * All file processing is performed client-side without uploading data to external servers.
+ * Requirements: 8.3
  */
+
+// Importar router
+import { Router } from './router/Router.js';
+
+// Importar vistas
+import { HubPage } from './views/HubPage.js';
+import { AudioRecorderView } from './views/AudioRecorderView.js';
+import { ScreenRecorderView } from './views/ScreenRecorderView.js';
+import { MediaExtractorView } from './views/MediaExtractorView.js';
+import { ImageConverterView } from './views/ImageConverterView.js';
+import { BackgroundRemoverView } from './views/BackgroundRemoverView.js';
+import { AudioTranscriberView } from './views/AudioTranscriberView.js';
 
 // Importar modelos
 import { PDFOperations } from './models/PDFOperations.js';
@@ -25,12 +40,546 @@ import { WatermarkController } from './controllers/WatermarkController.js';
 
 /**
  * Clase principal de la aplicación
+ * 
+ * Integrates all tools with the router and ensures proper cleanup when navigating between tools.
+ * All processing is performed client-side to maintain user privacy.
  */
 class App {
   constructor() {
+    // Inicializar router
+    this.router = new Router();
+    
     // Inicializar modelos (compartidos entre controladores)
     this.pdfOperations = new PDFOperations();
     this.fileManager = new FileManager();
+    this.uiManager = null; // Will be initialized when PDF view is shown
+    
+    // Controladores se inicializan cuando se muestra la vista PDF
+    this.controllers = null;
+    
+    // Estado de la aplicación
+    this.currentOperation = null;
+    this.currentController = null;
+    
+    // Referencias a elementos del DOM (se inicializan según la vista)
+    this.operationSelect = null;
+    this.fileInput = null;
+    this.dropzone = null;
+    this.processBtn = null;
+    this.fileList = null;
+    this.notification = null;
+    this.notificationClose = null;
+    
+    // Controles específicos de operaciones
+    this.splitControls = null;
+    this.rotateControls = null;
+    this.pageNumbersControls = null;
+    this.watermarkControls = null;
+    this.pageRanges = null;
+    this.pageSelection = null;
+    this.rotationAngle = null;
+    
+    // Inicializar la aplicación
+    this.init();
+  }
+  
+  /**
+   * Inicializa la aplicación configurando el router y las rutas
+   */
+  init() {
+    // Configurar rutas
+    this.setupRoutes();
+    
+    // Inicializar el router con el contenedor
+    const routerContainer = document.getElementById('router-container');
+    if (routerContainer) {
+      this.router.init(routerContainer);
+    }
+    
+    // Configurar limpieza al cerrar la página
+    this._setupPageCleanup();
+  }
+  
+  /**
+   * Configura la limpieza de recursos cuando el usuario abandona la página
+   * Requirements: 8.3 - No retener archivos cuando el usuario abandona la página
+   * @private
+   */
+  _setupPageCleanup() {
+    window.addEventListener('beforeunload', () => {
+      this._cleanupAllResources();
+    });
+    
+    // También limpiar cuando se oculta la página (mobile)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        // No limpiamos completamente, pero podemos liberar recursos no esenciales
+        if (this.fileManager) {
+          this.fileManager.clearFiles();
+        }
+      }
+    });
+  }
+  
+  /**
+   * Limpia todos los recursos de la aplicación
+   * @private
+   */
+  _cleanupAllResources() {
+    // Limpiar vista PDF si está activa
+    this.cleanupPDFToolsView();
+    
+    // Limpiar FileManager
+    if (this.fileManager) {
+      this.fileManager.clearFiles();
+    }
+    
+    // Destruir router (esto limpiará la vista actual)
+    if (this.router) {
+      this.router.destroy();
+    }
+  }
+  
+  /**
+   * Configura las rutas de la aplicación
+   * 
+   * Wires up all controllers with the router:
+   * - Hub page (main navigation)
+   * - PDF tools (existing IHATEPDF interface)
+   * - Audio recorder
+   * - Screen recorder
+   * - Media extractor
+   * - Image converter
+   * - Background remover
+   * - Audio transcriber
+   */
+  setupRoutes() {
+    // Ruta principal - Hub
+    this.router.register('/', HubPage);
+    
+    // Ruta PDF - Muestra la interfaz de herramientas PDF existente
+    // Usamos una clase wrapper porque el router espera un constructor
+    const self = this;
+    class PDFToolsView {
+      constructor(router) {
+        this.router = router;
+        this.app = self;
+      }
+      render() {
+        return self.getPDFToolsHTML();
+      }
+      mount(container) {
+        self.initPDFToolsView();
+      }
+      destroy() {
+        self.cleanupPDFToolsView();
+      }
+    }
+    this.router.register('/pdf', PDFToolsView);
+    
+    // Ruta Audio Recorder - Grabador de audio
+    // View handles its own controller initialization and cleanup
+    this.router.register('/audio-record', AudioRecorderView);
+    
+    // Ruta Screen Recorder - Grabador de pantalla
+    // View handles its own controller initialization and cleanup
+    this.router.register('/screen-record', ScreenRecorderView);
+    
+    // Ruta Media Extractor - Extractor de media
+    // View handles its own controller initialization and cleanup
+    this.router.register('/media-extract', MediaExtractorView);
+    
+    // Ruta Image Converter - Convertidor de imágenes
+    // View handles its own controller initialization and cleanup
+    this.router.register('/image-convert', ImageConverterView);
+    
+    // Ruta Background Remover - Removedor de fondo
+    // View handles its own controller initialization and cleanup
+    this.router.register('/bg-remove', BackgroundRemoverView);
+    
+    // Ruta Audio Transcriber - Transcriptor de audio
+    // View handles its own controller initialization and cleanup
+    this.router.register('/transcribe', AudioTranscriberView);
+    
+    // Configurar handler para rutas no encontradas
+    this.router.setNotFoundHandler((path, container) => {
+      container.innerHTML = `
+        <div class="router-error">
+          <h2>Página no encontrada</h2>
+          <p>La herramienta "${path}" aún no está disponible.</p>
+          <a href="#/" class="btn btn--primary">Volver al inicio</a>
+        </div>
+      `;
+    });
+  }
+  
+  /**
+   * Crea y retorna la vista de herramientas PDF
+   * @returns {Object} Objeto con métodos render y mount
+   */
+  createPDFToolsView() {
+    const self = this;
+    return {
+      render() {
+        // Retornar el HTML de la vista PDF
+        return self.getPDFToolsHTML();
+      },
+      mount(container) {
+        // Inicializar la vista PDF después de que se renderice
+        self.initPDFToolsView();
+      },
+      destroy() {
+        // Limpiar cuando se navegue fuera
+        self.cleanupPDFToolsView();
+      }
+    };
+  }
+  
+  /**
+   * Obtiene el HTML para la vista de herramientas PDF
+   * @returns {string} HTML de la vista PDF
+   */
+  getPDFToolsHTML() {
+    return `
+      <!-- Header -->
+      <header class="header">
+        <a href="#/" class="header__back" aria-label="Volver al inicio">← Inicio</a>
+        <h1 class="header__title">IHATEPDF</h1>
+        <p class="header__subtitle">Herramientas PDF del lado del cliente</p>
+      </header>
+
+      <!-- Main Content -->
+      <main class="main">
+        <!-- Operation Selector -->
+        <section class="operation-selector" aria-label="Seleccionar operación">
+          <label for="operationSelect" class="operation-selector__label">¿Qué quieres hacer?</label>
+          <div class="operation-dropdown">
+            <select id="operationSelect" class="operation-select">
+              <option value="combine">📄 Combinar PDFs</option>
+              <option value="split">✂️ Dividir PDF</option>
+              <option value="compress">📦 Comprimir PDF</option>
+              <option value="rotate">🔄 Rotar páginas</option>
+              <option value="jpg-to-pdf">🖼️ JPG a PDF</option>
+              <option value="png-to-pdf">🖼️ PNG a PDF</option>
+              <option value="images-to-pdf">🖼️ Imágenes a PDF</option>
+              <option value="add-page-numbers">🔢 Numerar páginas</option>
+              <option value="add-watermark">💧 Marca de agua</option>
+            </select>
+            <div class="operation-dropdown__arrow">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+          </div>
+        </section>
+
+        <!-- File Upload Area -->
+        <section class="file-upload" aria-label="Cargar archivos">
+          <div 
+            class="file-upload__dropzone" 
+            id="dropzone"
+            role="button"
+            tabindex="0"
+            aria-label="Arrastra archivos aquí o haz clic para seleccionar">
+            <svg class="file-upload__icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <p class="file-upload__text">
+              Arrastra archivos aquí<br>
+              <span class="file-upload__text--secondary">o haz clic para seleccionar</span>
+            </p>
+            <input 
+              type="file" 
+              id="fileInput" 
+              class="file-upload__input" 
+              multiple
+              accept=".pdf,.jpg,.jpeg,.png"
+              aria-label="Seleccionar archivos">
+          </div>
+        </section>
+
+        <!-- Operation-specific Controls -->
+        <section class="operation-controls" id="operationControls" aria-label="Controles de operación">
+          <!-- Split Controls -->
+          <div class="control-group" id="splitControls" hidden>
+            <div class="split-info" id="splitInfo">
+              <p class="split-info__text">Carga un PDF para ver las opciones de división</p>
+            </div>
+            
+            <div class="split-options" id="splitOptions" hidden>
+              <h3 class="split-options__title">¿Cómo quieres dividir el PDF?</h3>
+              
+              <div class="split-mode">
+                <button type="button" class="split-mode__btn" data-mode="pages" id="splitByPages">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <line x1="9" y1="3" x2="9" y2="21"/>
+                    <line x1="15" y1="3" x2="15" y2="21"/>
+                  </svg>
+                  <span>Dividir cada N páginas</span>
+                </button>
+                
+                <button type="button" class="split-mode__btn" data-mode="ranges" id="splitByRanges">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="18" rx="1"/>
+                    <rect x="14" y="3" width="7" height="18" rx="1"/>
+                  </svg>
+                  <span>Seleccionar rangos específicos</span>
+                </button>
+              </div>
+              
+              <!-- Dividir cada N páginas -->
+              <div class="split-config" id="splitConfigPages" hidden>
+                <label for="pagesPerSplit" class="control-group__label">
+                  Dividir cada cuántas páginas:
+                </label>
+                <div class="number-input">
+                  <button type="button" class="number-input__btn" id="decreasePages">-</button>
+                  <input 
+                    type="number" 
+                    id="pagesPerSplit" 
+                    class="number-input__field"
+                    value="1"
+                    min="1"
+                    max="999">
+                  <button type="button" class="number-input__btn" id="increasePages">+</button>
+                </div>
+                <small class="control-group__help" id="splitPagesPreview">
+                  Esto creará X archivos
+                </small>
+              </div>
+              
+              <!-- Seleccionar rangos -->
+              <div class="split-config" id="splitConfigRanges" hidden>
+                <div class="ranges-builder">
+                  <div class="ranges-builder__header">
+                    <label class="control-group__label">Rangos de páginas:</label>
+                    <button type="button" class="btn-add-range" id="addRange">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                      </svg>
+                      Agregar rango
+                    </button>
+                  </div>
+                  <div class="ranges-list" id="rangesList">
+                    <!-- Ranges will be added here dynamically -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rotate Controls -->
+          <div class="control-group" id="rotateControls" hidden>
+            <label for="pageSelection" class="control-group__label">
+              Páginas a rotar (ej: 1, 3, 5-7)
+            </label>
+            <input 
+              type="text" 
+              id="pageSelection" 
+              class="control-group__input"
+              placeholder="1, 3, 5-7"
+              aria-describedby="pageSelectionHelp">
+            <small id="pageSelectionHelp" class="control-group__help">
+              Especifica las páginas separadas por comas
+            </small>
+            
+            <label for="rotationAngle" class="control-group__label">
+              Ángulo de rotación
+            </label>
+            <select id="rotationAngle" class="control-group__select">
+              <option value="90">90° (derecha)</option>
+              <option value="180">180° (invertir)</option>
+              <option value="270">270° (izquierda)</option>
+            </select>
+          </div>
+
+          <!-- Page Numbers Controls -->
+          <div class="control-group" id="pageNumbersControls" hidden>
+            <label for="pageNumberPosition" class="control-group__label">
+              Posición de los números
+            </label>
+            <select id="pageNumberPosition" class="control-group__select">
+              <option value="bottom-right">Abajo derecha</option>
+              <option value="bottom-left">Abajo izquierda</option>
+              <option value="bottom-center">Abajo centro</option>
+              <option value="top-right">Arriba derecha</option>
+              <option value="top-left">Arriba izquierda</option>
+              <option value="top-center">Arriba centro</option>
+            </select>
+            
+            <label for="pageNumberFormat" class="control-group__label">
+              Formato
+            </label>
+            <select id="pageNumberFormat" class="control-group__select">
+              <option value="number">Solo número (1, 2, 3...)</option>
+              <option value="page-of-total">Página de total (1 de 10)</option>
+            </select>
+            
+            <label for="pageNumberFontSize" class="control-group__label">
+              Tamaño de fuente
+            </label>
+            <div class="number-input">
+              <button type="button" class="number-input__btn" id="decreaseFontSize">-</button>
+              <input 
+                type="number" 
+                id="pageNumberFontSize" 
+                class="number-input__field"
+                value="12"
+                min="8"
+                max="24">
+              <button type="button" class="number-input__btn" id="increaseFontSize">+</button>
+            </div>
+            
+            <label for="startPageNumber" class="control-group__label">
+              Empezar desde la página
+            </label>
+            <div class="number-input">
+              <button type="button" class="number-input__btn" id="decreaseStartPage">-</button>
+              <input 
+                type="number" 
+                id="startPageNumber" 
+                class="number-input__field"
+                value="1"
+                min="1"
+                max="999">
+              <button type="button" class="number-input__btn" id="increaseStartPage">+</button>
+            </div>
+          </div>
+
+          <!-- Watermark Controls -->
+          <div class="control-group" id="watermarkControls" hidden>
+            <label for="watermarkText" class="control-group__label">
+              Texto de la marca de agua
+            </label>
+            <input 
+              type="text" 
+              id="watermarkText" 
+              class="control-group__input"
+              placeholder="CONFIDENCIAL"
+              maxlength="50">
+            
+            <label for="watermarkPosition" class="control-group__label">
+              Posición
+            </label>
+            <select id="watermarkPosition" class="control-group__select">
+              <option value="diagonal">Diagonal (45°)</option>
+              <option value="center">Centro horizontal</option>
+            </select>
+            
+            <label for="watermarkOpacity" class="control-group__label">
+              Opacidad
+            </label>
+            <div class="range-input">
+              <input 
+                type="range" 
+                id="watermarkOpacity" 
+                class="range-input__slider"
+                min="0.1"
+                max="1"
+                step="0.1"
+                value="0.3">
+              <span class="range-input__value" id="opacityValue">30%</span>
+            </div>
+            
+            <label for="watermarkFontSize" class="control-group__label">
+              Tamaño de fuente
+            </label>
+            <div class="number-input">
+              <button type="button" class="number-input__btn" id="decreaseWatermarkSize">-</button>
+              <input 
+                type="number" 
+                id="watermarkFontSize" 
+                class="number-input__field"
+                value="50"
+                min="20"
+                max="100">
+              <button type="button" class="number-input__btn" id="increaseWatermarkSize">+</button>
+            </div>
+            
+            <label for="watermarkColor" class="control-group__label">
+              Color
+            </label>
+            <div class="color-input">
+              <input 
+                type="color" 
+                id="watermarkColor" 
+                class="color-input__picker"
+                value="#000000">
+              <span class="color-input__label">Negro</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- File Preview List -->
+        <section class="file-preview" id="filePreview" aria-label="Archivos cargados">
+          <h2 class="file-preview__title">
+            Archivos seleccionados
+            <span class="file-preview__count" id="fileCount" hidden>0</span>
+          </h2>
+          <ul class="file-preview__list" id="fileList" role="list">
+            <li class="file-preview__empty">Sube archivos para comenzar</li>
+          </ul>
+        </section>
+
+        <!-- Process Button -->
+        <section class="action-section">
+          <button 
+            type="button" 
+            id="processBtn" 
+            class="btn btn--primary btn--large"
+            disabled
+            aria-label="Procesar archivos">
+            Procesar
+          </button>
+        </section>
+
+        <!-- Download Options (will be inserted here by DownloadOptions component) -->
+        <section class="download-section" id="downloadSection">
+          <!-- DownloadOptions component will be inserted here -->
+        </section>
+
+        <!-- Progress Indicator -->
+        <div class="progress-indicator" id="progressIndicator" hidden aria-live="polite">
+          <div class="progress-indicator__spinner"></div>
+          <p class="progress-indicator__message" id="progressMessage">Procesando...</p>
+        </div>
+
+        <!-- Notification Banner -->
+        <div 
+          class="notification" 
+          id="notification" 
+          role="alert" 
+          aria-live="assertive"
+          hidden>
+          <p class="notification__message" id="notificationMessage"></p>
+          <button 
+            type="button" 
+            class="notification__close" 
+            aria-label="Cerrar notificación">
+            ×
+          </button>
+        </div>
+      </main>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <p class="footer__text">
+          Todos los archivos se procesan localmente en tu navegador. 
+          No se envían datos a ningún servidor.
+        </p>
+      </footer>
+    `;
+  }
+  
+  /**
+   * Inicializa la vista de herramientas PDF
+   */
+  initPDFToolsView() {
+    // Inicializar UIManager con FileManager
     this.uiManager = new UIManager(this.fileManager);
     
     // Inicializar controladores
@@ -46,11 +595,7 @@ class App {
       'add-watermark': new WatermarkController(this.pdfOperations, this.fileManager, this.uiManager)
     };
     
-    // Estado de la aplicación
-    this.currentOperation = null;
-    this.currentController = null;
-    
-    // Elementos del DOM
+    // Obtener referencias a elementos del DOM
     this.operationSelect = document.getElementById('operationSelect');
     this.fileInput = document.getElementById('fileInput');
     this.dropzone = document.getElementById('dropzone');
@@ -68,34 +613,28 @@ class App {
     this.pageSelection = document.getElementById('pageSelection');
     this.rotationAngle = document.getElementById('rotationAngle');
     
-    // Inicializar la aplicación
-    this.init();
-  }
-  
-  /**
-   * Inicializa la aplicación configurando event listeners
-   */
-  init() {
-    
-    // Configurar event listeners para botones de operación
+    // Configurar event listeners
     this.setupOperationButtons();
-    
-    // Configurar event listeners para carga de archivos
     this.setupFileUpload();
-    
-    // Configurar event listener para botón de procesar
     this.setupProcessButton();
-    
-    // Configurar event listeners para lista de archivos
     this.setupFileList();
-    
-    // Configurar event listeners para notificaciones
     this.setupNotifications();
-    
-    // Los controles específicos se configuran en updateOperationControls
     
     // Seleccionar operación por defecto (combinar)
     this.selectOperation('combine');
+  }
+  
+  /**
+   * Limpia la vista de herramientas PDF
+   */
+  cleanupPDFToolsView() {
+    if (this.uiManager) {
+      this.uiManager.destroy();
+      this.uiManager = null;
+    }
+    this.controllers = null;
+    this.currentOperation = null;
+    this.currentController = null;
   }
   
   /**

@@ -39,7 +39,10 @@ describe('UIManager - Unit Tests', () => {
     // Mock del FileManager para las pruebas con DownloadOptions
     const mockFileManager = {
       downloadFile: vi.fn(),
-      downloadFileWithCustomLocation: vi.fn().mockResolvedValue(undefined)
+      downloadFileWithCustomLocation: vi.fn().mockResolvedValue(undefined),
+      supportsFileSystemAccess: vi.fn().mockReturnValue(false),
+      isMobileDevice: vi.fn().mockReturnValue(false),
+      getFileSystemAccessUnavailableReason: vi.fn().mockReturnValue('Tu navegador no soporta esta función')
     };
     
     uiManager = new UIManager(mockFileManager);
@@ -165,7 +168,7 @@ describe('UIManager - Unit Tests', () => {
     test('updateFileList should show empty message when no files', () => {
       uiManager.updateFileList([]);
 
-      expect(uiManager.fileList.innerHTML).toContain('No hay archivos seleccionados');
+      expect(uiManager.fileList.innerHTML).toContain('Sube archivos para comenzar');
     });
 
     test('clearFileList should remove all files', () => {
@@ -177,7 +180,7 @@ describe('UIManager - Unit Tests', () => {
       expect(uiManager.fileList.querySelectorAll('.file-preview__item').length).toBe(1);
 
       uiManager.clearFileList();
-      expect(uiManager.fileList.innerHTML).toContain('No hay archivos seleccionados');
+      expect(uiManager.fileList.innerHTML).toContain('Sube archivos para comenzar');
     });
 
     test('updateFileList should escape HTML in file names', () => {

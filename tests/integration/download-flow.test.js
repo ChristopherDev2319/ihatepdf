@@ -41,6 +41,12 @@ describe('Download Flow Integration Tests', () => {
   beforeEach(() => {
     setupMockDOM();
     fileManager = new FileManager();
+    
+    // Mock supportsFileSystemAccess to return false (show filename input)
+    vi.spyOn(fileManager, 'supportsFileSystemAccess').mockReturnValue(false);
+    vi.spyOn(fileManager, 'isMobileDevice').mockReturnValue(false);
+    vi.spyOn(fileManager, 'getFileSystemAccessUnavailableReason').mockReturnValue('Tu navegador no soporta esta función');
+    
     uiManager = new UIManager(fileManager);
     
     // Mock actual download methods to prevent real downloads

@@ -2,6 +2,443 @@
    IHATEPDF - Estilos Responsivos
    ========================================================================== */
 
+/* ==========================================================================
+   Hub Page Responsive Styles
+   ========================================================================== */
+
+/* Large Desktop (1200px+) */
+@media (min-width: 1200px) {
+  .hub-grid {
+    grid-template-columns: repeat(2, minmax(250px, 320px));
+    max-width: 720px;
+    justify-content: center;
+  }
+}
+
+/* Desktop (992px - 1199px) */
+@media (min-width: 992px) and (max-width: 1199px) {
+  .hub-grid {
+    grid-template-columns: repeat(2, minmax(250px, 320px));
+    max-width: 720px;
+    justify-content: center;
+  }
+}
+
+/* Tablets (768px - 991px) */
+@media (min-width: 768px) and (max-width: 991px) {
+  .hub-page {
+    padding: var(--spacing-md);
+  }
+  
+  .hub-header {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+  
+  .hub-header__title {
+    font-size: 2rem;
+  }
+  
+  .hub-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-md);
+    max-width: 800px;
+  }
+  
+  .hub-card {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+  
+  .hub-card__icon {
+    font-size: 2.5rem;
+  }
+  
+  .hub-card__title {
+    font-size: var(--font-size-base);
+  }
+  
+  .hub-card__description {
+    font-size: var(--font-size-small);
+  }
+}
+
+/* Mobile (480px - 767px) */
+@media (min-width: 480px) and (max-width: 767px) {
+  .hub-page {
+    padding: var(--spacing-sm);
+  }
+  
+  .hub-header {
+    padding: var(--spacing-md) var(--spacing-sm);
+  }
+  
+  .hub-header__title {
+    font-size: 1.75rem;
+  }
+  
+  .hub-header__subtitle {
+    font-size: var(--font-size-small);
+  }
+  
+  .hub-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+    max-width: 500px;
+    justify-content: center;
+  }
+  
+  .hub-card {
+    padding: var(--spacing-md);
+  }
+  
+  .hub-card__icon {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .hub-card__title {
+    font-size: var(--font-size-base);
+  }
+  
+  .hub-card__description {
+    font-size: var(--font-size-small);
+  }
+}
+
+/* Small Mobile (< 480px) */
+@media (max-width: 479px) {
+  .hub-page {
+    padding: var(--spacing-sm);
+  }
+  
+  .hub-header {
+    padding: var(--spacing-md) var(--spacing-xs);
+  }
+  
+  .hub-header__title {
+    font-size: 1.5rem;
+  }
+  
+  .hub-header__subtitle {
+    font-size: var(--font-size-small);
+  }
+  
+  .hub-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+  }
+  
+  .hub-card {
+    flex-direction: row;
+    text-align: left;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+  }
+  
+  .hub-card__icon {
+    font-size: 2rem;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+  
+  .hub-card__content {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .hub-card__title {
+    font-size: var(--font-size-base);
+    margin-bottom: 4px;
+  }
+  
+  .hub-card__description {
+    font-size: var(--font-size-small);
+    line-height: 1.4;
+  }
+  
+  .hub-footer {
+    padding: var(--spacing-md) var(--spacing-sm);
+  }
+  
+  .hub-footer__text {
+    font-size: 0.75rem;
+  }
+}
+
+/* ==========================================================================
+   Tool Pages Responsive Styles
+   ========================================================================== */
+
+/* Tool Header Responsive */
+@media (max-width: 768px) {
+  .tool-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+  
+  .tool-header__back {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-small);
+  }
+  
+  .tool-header__title {
+    font-size: 1.25rem;
+  }
+  
+  .tool-content {
+    padding: var(--spacing-md);
+  }
+  
+  .tool-footer {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+  
+  /* Recorder Section Responsive */
+  .recorder-section {
+    padding: var(--spacing-lg);
+    border-radius: 16px;
+  }
+  
+  .recorder-timer__time {
+    font-size: 3rem;
+  }
+  
+  .recorder-controls {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .recorder-btn {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .recorder-btn__icon {
+    font-size: 1.5rem;
+  }
+  
+  /* Extractor Responsive */
+  .extractor-info {
+    padding: var(--spacing-lg);
+    border-radius: 16px;
+  }
+  
+  .extractor-actions {
+    flex-direction: column;
+  }
+  
+  .extractor-actions .btn {
+    width: 100%;
+  }
+  
+  /* Converter Responsive */
+  .converter-preview,
+  .converter-options {
+    padding: var(--spacing-md);
+    border-radius: 12px;
+  }
+  
+  .converter-preview__container {
+    min-height: 150px;
+    padding: var(--spacing-sm);
+  }
+  
+  .converter-preview__image {
+    max-height: 200px;
+  }
+  
+  /* Background Remover Responsive */
+  .bg-remover-preview,
+  .bg-remover-options {
+    padding: var(--spacing-md);
+    border-radius: 12px;
+  }
+  
+  /* Transcriber Responsive */
+  .transcriber-options__grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .transcriber-option {
+    padding: var(--spacing-md);
+  }
+  
+  .transcriber-result__text {
+    min-height: 120px;
+    max-height: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tool-header {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+  
+  .tool-header__title {
+    font-size: 1.125rem;
+  }
+  
+  .tool-content {
+    padding: var(--spacing-sm);
+  }
+  
+  /* Recorder Section Small Mobile */
+  .recorder-section {
+    padding: var(--spacing-md);
+    border-radius: 12px;
+  }
+  
+  .recorder-timer__time {
+    font-size: 2.5rem;
+  }
+  
+  .recorder-btn {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .recorder-btn__icon {
+    font-size: 1.25rem;
+  }
+  
+  .recorder-btn__text {
+    font-size: 0.7rem;
+  }
+  
+  .recorder-result,
+  .recorder-info {
+    padding: var(--spacing-md);
+    border-radius: 12px;
+  }
+  
+  .recorder-result__actions,
+  .recorder-info__list {
+    font-size: var(--font-size-small);
+  }
+  
+  /* Extractor Small Mobile */
+  .extractor-info,
+  .extractor-progress,
+  .extractor-result {
+    padding: var(--spacing-md);
+    border-radius: 12px;
+  }
+  
+  .extractor-progress__spinner,
+  .ffmpeg-loading__spinner {
+    width: 40px;
+    height: 40px;
+  }
+  
+  /* Converter Small Mobile */
+  .converter-preview,
+  .converter-options,
+  .converter-result {
+    padding: var(--spacing-sm);
+    border-radius: 10px;
+  }
+  
+  .converter-preview__container {
+    min-height: 120px;
+  }
+  
+  .converter-preview__image {
+    max-height: 150px;
+  }
+  
+  .converter-result__comparison {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+  
+  .converter-result__arrow {
+    transform: rotate(90deg);
+    font-size: 1.5rem;
+  }
+  
+  .converter-result__image {
+    max-height: 100px;
+  }
+  
+  /* Background Remover Small Mobile */
+  .bg-remover-preview,
+  .bg-remover-options,
+  .bg-remover-progress,
+  .bg-remover-result {
+    padding: var(--spacing-sm);
+    border-radius: 10px;
+  }
+  
+  .bg-remover-preview__container {
+    min-height: 120px;
+  }
+  
+  .bg-remover-preview__image {
+    max-height: 150px;
+  }
+  
+  .bg-remover-result__comparison {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+  
+  .bg-remover-result__arrow {
+    transform: rotate(90deg);
+    font-size: 1.5rem;
+  }
+  
+  /* Transcriber Small Mobile */
+  .transcriber-options {
+    margin-bottom: var(--spacing-md);
+  }
+  
+  .transcriber-option {
+    padding: var(--spacing-sm);
+    border-radius: 12px;
+  }
+  
+  .transcriber-option__icon {
+    font-size: 2rem;
+  }
+  
+  .transcriber-result {
+    padding: var(--spacing-sm);
+    border-radius: 12px;
+  }
+  
+  .transcriber-result__text {
+    min-height: 100px;
+    max-height: 250px;
+    padding: var(--spacing-sm);
+  }
+  
+  .transcriber-controls {
+    flex-direction: column;
+  }
+  
+  .transcriber-controls .btn {
+    width: 100%;
+  }
+  
+  .transcriber-result__actions {
+    flex-direction: column;
+  }
+  
+  .transcriber-result__actions .btn {
+    width: 100%;
+  }
+  
+  .transcriber-info {
+    padding: var(--spacing-sm);
+    border-radius: 12px;
+  }
+}
+
+/* ==========================================================================
+   Original Responsive Styles
+   ========================================================================== */
+
 /* Tablets (768px y menores)
    ========================================================================== */
 
