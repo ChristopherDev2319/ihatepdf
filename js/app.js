@@ -3,6 +3,9 @@
  * 
  * Inicializa todos los componentes MVC, configura event listeners
  * y maneja la navegación entre operaciones usando el router.
+ * 
+ * All file processing is performed client-side without uploading data to external servers.
+ * Requirements: 8.3
  */
 
 // Importar router
@@ -13,6 +16,9 @@ import { HubPage } from './views/HubPage.js';
 import { AudioRecorderView } from './views/AudioRecorderView.js';
 import { ScreenRecorderView } from './views/ScreenRecorderView.js';
 import { MediaExtractorView } from './views/MediaExtractorView.js';
+import { ImageConverterView } from './views/ImageConverterView.js';
+import { BackgroundRemoverView } from './views/BackgroundRemoverView.js';
+import { AudioTranscriberView } from './views/AudioTranscriberView.js';
 
 // Importar modelos
 import { PDFOperations } from './models/PDFOperations.js';
@@ -34,6 +40,9 @@ import { WatermarkController } from './controllers/WatermarkController.js';
 
 /**
  * Clase principal de la aplicación
+ * 
+ * Integrates all tools with the router and ensures proper cleanup when navigating between tools.
+ * All processing is performed client-side to maintain user privacy.
  */
 class App {
   constructor() {
@@ -86,26 +95,111 @@ class App {
     if (routerContainer) {
       this.router.init(routerContainer);
     }
+    
+    // Configurar limpieza al cerrar la página
+    this._setupPageCleanup();
+  }
+  
+  /**
+   * Configura la limpieza de recursos cuando el usuario abandona la página
+   * Requirements: 8.3 - No retener archivos cuando el usuario abandona la página
+   * @private
+   */
+  _setupPageCleanup() {
+    window.addEventListener('beforeunload', () => {
+      this._cleanupAllResources();
+    });
+    
+    // También limpiar cuando se oculta la página (mobile)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        // No limpiamos completamente, pero podemos liberar recursos no esenciales
+        if (this.fileManager) {
+          this.fileManager.clearFiles();
+        }
+      }
+    });
+  }
+  
+  /**
+   * Limpia todos los recursos de la aplicación
+   * @private
+   */
+  _cleanupAllResources() {
+    // Limpiar vista PDF si está activa
+    this.cleanupPDFToolsView();
+    
+    // Limpiar FileManager
+    if (this.fileManager) {
+      this.fileManager.clearFiles();
+    }
+    
+    // Destruir router (esto limpiará la vista actual)
+    if (this.router) {
+      this.router.destroy();
+    }
   }
   
   /**
    * Configura las rutas de la aplicación
+   * 
+   * Wires up all controllers with the router:
+   * - Hub page (main navigation)
+   * - PDF tools (existing IHATEPDF interface)
+   * - Audio recorder
+   * - Screen recorder
+   * - Media extractor
+   * - Image converter
+   * - Background remover
+   * - Audio transcriber
    */
   setupRoutes() {
     // Ruta principal - Hub
     this.router.register('/', HubPage);
     
     // Ruta PDF - Muestra la interfaz de herramientas PDF existente
-    this.router.register('/pdf', () => this.createPDFToolsView());
+    // Usamos una clase wrapper porque el router espera un constructor
+    const self = this;
+    class PDFToolsView {
+      constructor(router) {
+        this.router = router;
+        this.app = self;
+      }
+      render() {
+        return self.getPDFToolsHTML();
+      }
+      mount(container) {
+        self.initPDFToolsView();
+      }
+      destroy() {
+        self.cleanupPDFToolsView();
+      }
+    }
+    this.router.register('/pdf', PDFToolsView);
     
     // Ruta Audio Recorder - Grabador de audio
+    // View handles its own controller initialization and cleanup
     this.router.register('/audio-record', AudioRecorderView);
     
     // Ruta Screen Recorder - Grabador de pantalla
+    // View handles its own controller initialization and cleanup
     this.router.register('/screen-record', ScreenRecorderView);
     
     // Ruta Media Extractor - Extractor de media
+    // View handles its own controller initialization and cleanup
     this.router.register('/media-extract', MediaExtractorView);
+    
+    // Ruta Image Converter - Convertidor de imágenes
+    // View handles its own controller initialization and cleanup
+    this.router.register('/image-convert', ImageConverterView);
+    
+    // Ruta Background Remover - Removedor de fondo
+    // View handles its own controller initialization and cleanup
+    this.router.register('/bg-remove', BackgroundRemoverView);
+    
+    // Ruta Audio Transcriber - Transcriptor de audio
+    // View handles its own controller initialization and cleanup
+    this.router.register('/transcribe', AudioTranscriberView);
     
     // Configurar handler para rutas no encontradas
     this.router.setNotFoundHandler((path, container) => {
