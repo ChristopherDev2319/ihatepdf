@@ -3154,3 +3154,38 @@
     width: 100%;
   }
 }
+
+
+/* ==========================================================================
+   Background Remover Options Styles
+   ========================================================================== */
+
+.bg-remover-options__description {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+  margin: var(--spacing-xs) 0 var(--spacing-md) 0;
+  padding: var(--spacing-sm);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  border-radius: var(--border-radius-md);
+  border-left: 3px solid var(--color-accent);
+}
+
+.bg-remover-options__tolerance-hints {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--spacing-xs);
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+}
+
+.recorder-info__tip {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm);
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 152, 0, 0.1) 100%);
+  border-radius: var(--border-radius-md);
+  border-left: 3px solid #ffc107;
+  font-size: var(--font-size-small);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-relaxed);
+}

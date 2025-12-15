@@ -96,6 +96,11 @@ export class BackgroundRemoverView {
               <label for="toleranceSlider" class="bg-remover-options__label">
                 Tolerancia de color: <span id="toleranceValue">30</span>
               </label>
+              <p class="bg-remover-options__description">
+                Controla qué tan similares deben ser los colores al fondo para ser eliminados. 
+                Un valor bajo elimina solo colores muy parecidos al fondo. 
+                Un valor alto elimina más colores (útil para fondos con variaciones).
+              </p>
               <input 
                 type="range" 
                 id="toleranceSlider" 
@@ -105,8 +110,8 @@ export class BackgroundRemoverView {
                 value="30"
                 aria-label="Tolerancia de color">
               <div class="bg-remover-options__tolerance-hints">
-                <span>Más preciso</span>
-                <span>Más agresivo</span>
+                <span>🎯 Preciso (solo fondo exacto)</span>
+                <span>🔥 Agresivo (más colores)</span>
               </div>
             </div>
 
@@ -173,13 +178,17 @@ export class BackgroundRemoverView {
 
           <!-- Info Section -->
           <section class="recorder-info">
-            <h2 class="recorder-info__title">Información</h2>
+            <h2 class="recorder-info__title">¿Cómo funciona?</h2>
             <ul class="recorder-info__list">
-              <li><strong>Funciona mejor con:</strong> Fondos sólidos o uniformes</li>
-              <li><strong>Tolerancia:</strong> Ajusta para controlar qué colores se eliminan</li>
-              <li><strong>Resultado:</strong> PNG con transparencia (canal alfa)</li>
-              <li>Todo el procesamiento se realiza en tu navegador</li>
+              <li><strong>1. Sube tu imagen:</strong> Arrastra o selecciona una imagen con fondo sólido</li>
+              <li><strong>2. Ajusta la tolerancia:</strong> Mueve el slider para controlar cuánto fondo se elimina</li>
+              <li><strong>3. Procesa:</strong> Haz clic en "Quitar fondo" y espera unos segundos</li>
+              <li><strong>4. Descarga:</strong> Obtén tu imagen PNG con fondo transparente</li>
             </ul>
+            <p class="recorder-info__tip">
+              💡 <strong>Tip:</strong> Funciona mejor con fondos de color sólido (blanco, verde, azul). 
+              Si el resultado no es perfecto, ajusta la tolerancia y vuelve a intentar.
+            </p>
           </section>
         </main>
 
