@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Convertidor de Imágenes</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { padding: 10px 15px; margin: 5px; }
+        input[type="file"] { margin: 10px 0; }
+        #preview { max-width: 300px; margin: 10px 0; }
+        select { padding: 5px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test - Convertidor de Imágenes</h1>
+    
+    <div class="test-section">
+        <h2>1. Cargar Imagen</h2>
+        <input type="file" id="fileInput" accept="image/*">
+        <div id="loadResult"></div>
+        <img id="preview" style="display: none;">
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Convertir Formato</h2>
+        <select id="formatSelect">
+            <option value="png">PNG</option>
+            <option value="jpg">JPG</option>
+            <option value="webp">WebP</option>
+            <option value="gif">GIF</option>
+        </select>
+        <input type="range" id="quality" min="1" max="100" value="92">
+        <span id="qualityValue">92%</span>
+        <br>
+        <button id="convertBtn" disabled>Convertir</button>
+        <div id="convertResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Descargar</h2>
+        <button id="downloadBtn" disabled>Descargar Imagen Convertida</button>
+        <div id="downloadResult"></div>
+    </div>
+
+    <script type="module">
+        import { ImageConverterController } from './js/controllers/ImageConverterController.js';
+        import { DownloadService } from './js/services/DownloadService.js';
+
+        // Inicializar servicios
+        const downloadService = new DownloadService();
+        const controller = new ImageConverterController(downloadService);
+        
+        // Referencias DOM
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const loadResult = document.getElementById('loadResult');
+        const formatSelect = document.getElementById('formatSelect');
+        const qualitySlider = document.getElementById('quality');
+        const qualityValue = document.getElementById('qualityValue');
+        const convertBtn = document.getElementById('convertBtn');
+        const convertResult = document.getElementById('convertResult');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const downloadResult = document.getElementById('downloadResult');
+
+        let convertedBlob = null;
+
+        // Event listeners
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                loadResult.innerHTML = '<div class="info">Cargando imagen...</div>';
+                
+                const imageInfo = await controller.loadImage(file);
+                
+                preview.src = imageInfo.previewUrl;
+                preview.style.display = 'block';
+                
+                loadResult.innerHTML = `
+                    <div class="success">✅ Imagen cargada exitosamente</div>
+                    <div><strong>Nombre:</strong> ${imageInfo.name}</div>
+                    <div><strong>Dimensiones:</strong> ${imageInfo.width} x ${imageInfo.height}</div>
+                    <div><strong>Tamaño:</strong> ${(imageInfo.size / 1024).toFixed(1)} KB</div>
+                `;
+                
+                convertBtn.disabled = false;
+                
+            } catch (error) {
+                loadResult.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                preview.style.display = 'none';
+                convertBtn.disabled = true;
+            }
+        });
+
+        qualitySlider.addEventListener('input', (e) => {
+            qualityValue.textContent = e.target.value + '%';
+        });
+
+        convertBtn.addEventListener('click', async () => {
+            try {
+                convertResult.innerHTML = '<div class="info">Convirtiendo imagen...</div>';
+                
+                const format = formatSelect.value;
+                const quality = parseInt(qualitySlider.value);
+                
+                convertedBlob = await controller.convertTo(format, quality);
+                
+                const originalSize = controller.loadedFile.size;
+                const newSize = convertedBlob.size;
+                const reduction = ((originalSize - newSize) / originalSize * 100).toFixed(1);
+                
+                convertResult.innerHTML = `
+                    <div class="success">✅ Conversión completada</div>
+                    <div><strong>Formato:</strong> ${format.toUpperCase()}</div>
+                    <div><strong>Tamaño original:</strong> ${(originalSize / 1024).toFixed(1)} KB</div>
+                    <div><strong>Tamaño nuevo:</strong> ${(newSize / 1024).toFixed(1)} KB</div>
+                    <div><strong>Cambio:</strong> ${reduction > 0 ? '-' : '+'}${Math.abs(reduction)}%</div>
+                `;
+                
+                downloadBtn.disabled = false;
+                
+            } catch (error) {
+                convertResult.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                downloadBtn.disabled = true;
+            }
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            try {
+                controller.downloadConvertedImage();
+                downloadResult.innerHTML = '<div class="success">✅ Descarga iniciada</div>';
+            } catch (error) {
+                downloadResult.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        });
+
+        // Test inicial
+        console.log('🧪 Test del Convertidor de Imágenes iniciado');
+        console.log('Formatos soportados:', controller.getAvailableFormats());
+        console.log('Extensiones soportadas:', controller.getSupportedInputFormats());
+    </script>
+</body>
+</html>
