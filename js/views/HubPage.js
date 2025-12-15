@@ -21,20 +21,21 @@ export class HubPage {
         description: 'Combina, divide, comprime y más', 
         path: '/pdf' 
       },
-      { 
-        id: 'audio-record', 
-        title: 'Grabar Audio', 
-        icon: '🎤', 
-        description: 'Graba audio desde tu micrófono', 
-        path: '/audio-record' 
-      },
-      { 
-        id: 'screen-record', 
-        title: 'Grabar Pantalla', 
-        icon: '🖥️', 
-        description: 'Captura tu pantalla en video', 
-        path: '/screen-record' 
-      },
+      // TODO: Habilitar cuando estén funcionando correctamente
+      // { 
+      //   id: 'audio-record', 
+      //   title: 'Grabar Audio', 
+      //   icon: '🎤', 
+      //   description: 'Graba audio desde tu micrófono', 
+      //   path: '/audio-record' 
+      // },
+      // { 
+      //   id: 'screen-record', 
+      //   title: 'Grabar Pantalla', 
+      //   icon: '🖥️', 
+      //   description: 'Captura tu pantalla en video', 
+      //   path: '/screen-record' 
+      // },
       { 
         id: 'media-extract', 
         title: 'Extraer Media', 
@@ -55,14 +56,15 @@ export class HubPage {
         icon: '✂️', 
         description: 'Elimina el fondo de imágenes', 
         path: '/bg-remove' 
-      },
-      { 
-        id: 'transcribe', 
-        title: 'Audio a Texto', 
-        icon: '📝', 
-        description: 'Transcribe audio a texto', 
-        path: '/transcribe' 
       }
+      // TODO: Habilitar cuando esté funcionando correctamente
+      // { 
+      //   id: 'transcribe', 
+      //   title: 'Audio a Texto', 
+      //   icon: '📝', 
+      //   description: 'Transcribe audio a texto', 
+      //   path: '/transcribe' 
+      // }
     ];
     
     /** @type {HTMLElement|null} */
